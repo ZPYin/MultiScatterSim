@@ -1,8 +1,8 @@
-function cloud_scattering_gen(r, theta, inWL, varargin)
-% CLOUD_SCATTERING_GEN generate cloud droplet scattering function.
+function water_droplet_scattering_gen(r, theta, inWL, varargin)
+% WATER_DROPLET_SCATTERING_GEN generate cloud droplet scattering function.
 %
 % USAGE:
-%    cloud_scattering_gen(r, theta, inWL)
+%    water_droplet_scattering_gen(r, theta, inWL)
 %
 % INPUTS:
 %    r: numeric
