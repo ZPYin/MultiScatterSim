@@ -1,4 +1,4 @@
-function [S1, S2, Qext, Qsca] = MieCalc(m, x, theta, varargin)
+function [S1, S2, Qext, Qsca, Qbks] = MieCalc(m, x, theta, varargin)
 % MIECALC Mie Calculation.
 %
 % USAGE:
@@ -21,6 +21,8 @@ function [S1, S2, Qext, Qsca] = MieCalc(m, x, theta, varargin)
 %        extinction efficiency.
 %    Qsca: numeric
 %        scattering efficiency.
+%    Qsca: numeric
+%        backscattering efficiency.
 %
 % REFERENCES:
 %    [1] Ahmad W, Zhang K, Tong Y, Xiao D, Wu L, Liu D. Water Cloud Detection
@@ -47,6 +49,7 @@ if (x == 0)                 % To avoid a singularity at x=0
     S2 = 0;
     Qext = 0;
     Qsca = 0;
+    Qbks = 0;
 
 elseif (x > 0)              % This is the normal situation
 
@@ -71,6 +74,12 @@ elseif (x > 0)              % This is the normal situation
     en = cn .* (anp .* anp + anpp .* anpp + bnp .* bnp + bnpp .* bnpp);
     q = sum(en);
     Qsca = 2 * q / x2;
+
+    fn = (f(1,:)-f(2,:)).*cn;
+    gn = (-1).^n;
+    f(3,:) = fn.*gn;
+    q = sum(f(3, :));
+    Qbks = q * q' / x2;
 
     an = f(1, :);
     bn = f(2, :);
