@@ -118,12 +118,23 @@ for iPhoton = 1:nPhotons
 
                 % probability without scattering again until entering lidar FOV
                 [~, iAng] = min(abs(cloudScatMatrix.theta - scaAng / pi * 180));
+                 % 计算垂直光学厚度（考虑多层云累积消光）
+                % 1. 下方完整层的光学厚度
+                opticalDepthBelow = 0;
+                if scaClLayer > 1
+                    opticalDepthBelow = sum(muExt(1:scaClLayer-1)) * cloudCfg.clDh;
+                end
+                % 2. 当前层光子位置到底部的光学厚度
+                layerBottom = cloudCfg.clBase + (scaClLayer - 1) * cloudCfg.clDh;
+                opticalDepthCurrent = (pPos(3) - layerBottom) * muExt(scaClLayer);
+                % 3. 总垂直光学厚度
+                verticalOD = opticalDepthBelow + opticalDepthCurrent;
                 if cloudScatMatrix.theta(iAng) < 90
                     probEnter = 0;
                 else
                     probEnter = albedo(scaClLayer) * ...
                         pi * (lidarCfg.rTel * 1e-3)^2 / norm(pPos - [lidarCfg.distBeamTel * 1e-3; 0; 0], 2).^2 * ...
-                        exp(- ((pPos(3) - cloudCfg.clBase) * muExt(scaClLayer)) / abs(pScaDir(3))) * ...
+                        exp(-verticalOD / abs(pScaDir(3))) * ...
                         S11(scaClLayer, iAng);
                 end
 

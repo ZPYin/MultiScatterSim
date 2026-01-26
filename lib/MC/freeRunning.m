@@ -59,8 +59,7 @@ else
         tau1 = (pInPos(3) - cloudBaseHeight - (inClLayer - 1) * dClThickness) * cloudExt(inClLayer);
     end
     tau2 = tau1 + tau0 * pInDir(3);
-    [~, idx] = find(tau2 < cumsumTau, 1);
-
+    idx = find(tau2 < cumsumTau, 1);
     if isempty(idx)
         outClLayer = NaN;
     else
