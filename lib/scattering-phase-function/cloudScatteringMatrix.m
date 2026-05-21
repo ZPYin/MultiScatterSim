@@ -72,8 +72,8 @@ case 'modified-gamma'
     S11 = 0.5 * (abs(S1).^2 + abs(S2).^2);
     S12 = 0.5 * (abs(S2).^2 - abs(S1).^2);
     S33 = 0.5 * (conj(S2) .* S1 + S2 .* conj(S1));
-    S34 = -0.5i * (S1 .* conj(S2) - S2 .* conj(S1));
-    factor = trapz(mieScaInfo.theta / 180 * pi, S11, 2);
+    S34 = -0.5i * (conj(S1) .* S2 - S1 .* conj(S2));
+    factor = trapz(mieScaInfo.theta / 180 * pi, S11.*sin(mieScaInfo.theta / 180 * pi), 2) / 2;
     S11 = S11 ./ repmat(factor, 1, length(mieScaInfo.theta));
     S12 = S12 ./ repmat(factor, 1, length(mieScaInfo.theta));
     S33 = S33 ./ repmat(factor, 1, length(mieScaInfo.theta));
