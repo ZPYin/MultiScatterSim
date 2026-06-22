@@ -1,27 +1,92 @@
 function [samples] = inverseSampling(x, y, nSamples, varargin)
-% INVERSESAMPLING inverse sampling.
+% INVERSESAMPLING 逆变换采样算法 - 基于累积分布函数的随机采样
 %
-% USAGE:
-%    [samples] = inverseSampling(x, y, nSamples)
+% 功能描述：
+%    该函数实现逆变换采样（Inverse Transform Sampling）算法，也称为逆CDF方法。
+%    通过计算概率密度函数的累积分布函数（CDF），然后对均匀分布的随机数
+%    进行逆变换，生成符合目标分布的随机样本。这是蒙特卡罗仿真中最基础
+%    和高效的采样技术之一。
 %
-% INPUTS:
-%    x: numeric
-%    y: numeric
-%    nSamples: numeric
+% 算法原理：
+%    逆变换采样基于概率论的基本定理：
+%    1. 计算概率密度函数的累积分布函数 F(x) = ∫f(t)dt
+%    2. 生成[0,1]区间的均匀随机数 u
+%    3. 计算逆累积分布函数 x = F^(-1)(u)
+%    4. 得到的x即为符合目标分布的样本
 %
-% OUTPUTS:
-%    samples: numeric
+% 算法优势：
+%    - 采样效率高，每次都能生成有效样本
+%    - 数学理论严格，保证样本分布的正确性
+%    - 适用于单调递增的累积分布函数
+%    - 计算复杂度低，适合大量采样
 %
-% HISTORY:
-%    2023-05-24: first edition by Zhenping
-% .. Authors: - zp.yin@whu.edu.cn
+% 使用方法：
+%    [samples] = inverseSampling(x, y, 1000)              % 生成1000个样本
+%    [samples] = inverseSampling(radius, size_dist, 500)  % 从粒径分布中采样
+%
+% 输入参数：
+%    x: 数值型数组
+%        自变量数组，定义概率密度函数的定义域
+%        必须为单调递增序列，例如：粒径、散射角、波长等
+%    y: 数值型数组
+%        因变量数组，表示概率密度函数值
+%        必须与x数组长度相同，且为非负值
+%    nSamples: 数值型标量
+%        需要生成的样本数量
+%        正整数，表示期望的采样点个数
+%
+% 可选参数：
+%    (当前版本暂无可选参数，保留扩展接口)
+%
+% 输出参数：
+%    samples: 数值型数组
+%        生成的随机样本数组，长度为nSamples
+%        样本严格服从输入的概率密度函数分布
+%
+% 应用场景：
+%    1. 云滴粒径谱的高效随机采样
+%    2. 散射角分布的精确采样
+%    3. 波长相关参数的随机生成
+%    4. 蒙特卡罗光子传输中的路径采样
+%    5. 激光雷达信号仿真中的统计建模
+%
+% 与拒绝采样的比较：
+%    - 逆变换采样：效率高，但要求CDF可逆
+%    - 拒绝采样：通用性强，但效率可能较低
+%
+% 注意事项：
+%    - 输入的x数组必须单调递增
+%    - y数组应为归一化的概率密度函数
+%    - 算法假设分布函数连续且可逆
+%    - 对于复杂分布，可能需要数值逆变换
+%
+% 历史记录：
+%    2023-05-24: 首次版本 by Zhenping
+% 作者联系方式：zp.yin@whu.edu.cn
 
-x = reshape(x, 1, length(x));
-y = reshape(y, 1, length(y));
+% 步骤1：数据预处理 - 将输入数组转换为行向量格式
+x = reshape(x, 1, length(x));  % 确保x为行向量，便于后续计算
+y = reshape(y, 1, length(y));  % 确保y为行向量，保持数据一致性
+
+% 步骤2：计算累积分布函数（CDF）
+% 使用梯形积分法计算概率密度函数的累积分布
+% diff(x)计算相邻x点的间距，乘以y得到每个区间的概率质量
+% cumsum计算累积和，得到累积分布函数
 cumsumY = cumsum([0, diff(x)] .* y);
+
+% 步骤3：生成均匀分布的随机数
+% 在[0,1]区间生成nSamples个均匀分布的随机数
 xRand = rand(1, nSamples);
-samples = NaN(1, nSamples);
+
+% 步骤4：初始化输出样本数组
+samples = NaN(1, nSamples);  % 预分配NaN数组，提高计算效率
+
+% 步骤5：逆变换采样主循环
+% 对每个随机数执行逆CDF变换，找到对应的样本值
 for iSample = 1:nSamples
+    % 将随机数缩放到累积分布函数的值域[0, cumsumY(end)]
+    % 然后找到第一个大于该值的CDF点，对应的x值即为样本
+    % find函数返回第一个满足条件的索引，实现逆变换
     samples(iSample) = x(find(cumsumY > (xRand(iSample) * cumsumY(end)), 1));
 end
 
