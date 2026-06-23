@@ -2,7 +2,7 @@ clc;
 
 %% Parameter Definition
 r = 0.01:0.5:20;
-theta = 0:1:180;
+theta = 175:0.1:180;
 kappa = 7;
 sigma_e = 4e-2;
 R_eff = [4, 8, 13, 18];
@@ -45,9 +45,9 @@ for iReff = 1:length(R_eff)
 end
 
 %% Display
-figure('Position', [0, 0, 700, 600], 'Units', 'Pixels', 'Color', 'w');
+figure('Position', [0, 0, 400, 1200], 'Units', 'Pixels', 'Color', 'w');
 
-subPos = subfigPos([0.1, 0.1, 0.88, 0.87], 3, 1, 0, 0.04);
+subPos = subfigPos([0.15, 0.1, 0.81, 0.87], 3, 1, 0, 0.04);
 
 subplot('Position', subPos(1, :), 'Units', 'Normalized');
 
@@ -94,11 +94,11 @@ for iReff = 1:length(R_eff)
     p = cat(1, p, p1);
 end
 
-xlabel('Scattering Angle (\circ)');
-ylabel('Linear Depol.');
+xlabel('É¢Éä½Ç (\circ)');
+ylabel('ÍËÆ«±È');
 
-xlim([0, 180]);
+xlim([177, 180]);
 ylim([0, 1])
 grid on;
 
-set(gca, 'XMinorTick', 'on', 'YMinorTick', 'on', 'Box', 'on');
+set(gca, 'XMinorTick', 'on', 'YMinorTick', 'on', 'Box', 'on', 'FontSize', 12);

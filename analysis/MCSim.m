@@ -14,9 +14,9 @@ lidarCfg.SBeam = [1; 1; 0; 0];   % Stokes vector of the incident laser beam.
 cloudCfg.clBase = 1000;   % cloud base height. [m]
 cloudCfg.clDh = 10;   % geometrical thickness of each cloud layer. [m]
 cloudCfg.nClLayers = 30;   % number of cloud layers.
-cloudCfg.kappa = 9 * ones(1, nClLayers);   % shape factor of modified gamma distribution.
-cloudCfg.clExt = 2e-2 * ones(1, nClLayers);   % cloud extinction. [m-1]
-cloudCfg.clReff = 9 * ones(1, nClLayers);   % cloud droplet effective radius. [um]
+cloudCfg.kappa = 9 * ones(1, cloudCfg.nClLayers);   % shape factor of modified gamma distribution.
+cloudCfg.clExt = 2e-2 * ones(1, cloudCfg.nClLayers);   % cloud extinction. [m-1]
+cloudCfg.clReff = 9 * ones(1, cloudCfg.nClLayers);   % cloud droplet effective radius. [um]
 
 %% MC
 MSMCSim(lidarCfg, cloudCfg, 'visible', 'on', 'debug', true, 'nPhoton', 1e4);
