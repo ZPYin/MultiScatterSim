@@ -1,2 +1,5 @@
 # exclude folders
 data/internal
+
+# files
+*.pptx
