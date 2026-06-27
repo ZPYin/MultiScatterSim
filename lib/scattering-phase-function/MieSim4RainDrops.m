@@ -64,6 +64,7 @@ addParameter(p, 'debug', false, @islogical); % 调试开关，默认关闭
 parse(p, r, theta, inWL, varargin{:});   % 解析输入参数
 
 %% Parameter Definition
+% 这里的参数似乎是为了测试OTT雨滴散射特性用的，应该对云层模拟没有意义
 % r = [0.062,0.187,0.312,0.437,0.562,0.687,0.812,0.937,1.062,1.187,1.375,1.625,1.875,2.125,2.375,2.750,3.250,3.750,4.250,4.750,5.500] / 2 * 1e3;   % radius of water droplet. [um]
 % r = (4000:0.1:4001) / 2;   % radius of water droplet. [um]
 % theta = 180 - (0:0.001:0.1);

@@ -118,15 +118,11 @@ if p.Results.recordHitMap
     maxAngle = lidarCfg.FOV * 1e-3 / 2;
     diag.angleBinEdges = linspace(0, maxAngle, nAngleGroups + 1);
     diag.angleBinCenters = 0.5 * (diag.angleBinEdges(1:end-1) + diag.angleBinEdges(2:end));
-    % x_center = lidarCfg.distBeamTel * 1e-3;
 
     xVals = linspace(-mapRadius, mapRadius, Nx);
     yVals = linspace(-mapRadius, mapRadius, Ny);
     [Xgrid, Ygrid] = meshgrid(xVals, yVals);
     mask = (Xgrid.^2 + Ygrid.^2) <= mapRadius^2;
-    dx = xVals(2) - xVals(1);
-    dy = yVals(2) - yVals(1);
-    % A_pixel = dx * dy;
     diag.telMapI = zeros(Ny, Nx);
     diag.telMapQ = zeros(Ny, Nx);
     diag.telMapU = zeros(Ny, Nx);
@@ -139,20 +135,20 @@ if p.Results.recordHitMap
 end
 
 %% ========== 云层散射特性计算 ==========
+projectDir = fileparts(fileparts(fileparts(mfilename('fullpath'))));
+
 % 添加必要的路径
-addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'sampling'));
-addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'scattering-phase-function'));
-addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'cloud-microphysics'));
+rootPath = fullfile(projectDir, 'lib');
+addpath(fullfile(rootPath, 'sampling'));
+addpath(fullfile(rootPath, 'scattering-phase-function'));
+addpath(fullfile(rootPath, 'cloud-microphysics'));
 
 % 项目根目录与数据库路径
-projectDir = fileparts(fileparts(fileparts(mfilename('fullpath'))));
 clScatMatrixFile = fullfile(projectDir, 'tests', 'data', ...
     'water_droplet_scattering_532nm_finer_validation_r_step_0p01um.mat');
 if ~isempty(p.Results.scatMatrixFile)
     clScatMatrixFile = p.Results.scatMatrixFile;
 end
-    %'water_droplet_scattering_532nm_forward_refined_r_step_0p1um.mat');  % 可选：轻量数据库
-    %'water_droplet_scattering_532nm_finer_validation_r_step_0p01um.mat');  % 可选：高精度数据库
 
 % 计算云层的散射矩阵和光学特性
 % 基于Mie散射理论，考虑云滴粒径分布（修正伽马分布）
@@ -194,8 +190,6 @@ cdfS12 = cumsum(S12 .* thetaWeights, 2);
 % 这里设置为4，提供更大的模拟空间以捕获边缘效应
 clBoundX = 4.0 ./ muExt;   % X方向云层边界半宽度 [m]
 clBoundY = 4.0 ./ muExt; % Y方向云层边界半宽度 [m]
-
-
 
 %% ========== 蒙特卡洛模拟主循环 ==========
 % 计算激光束在云底处的半径
@@ -329,66 +323,23 @@ for iPhoton = 1:nPhotons
                         S11(scaClLayer, iAng);
                 end
 
-                % if p.Results.recordHitMap
-                %     axisDir = [0; 0; -1];
-                %     for jj = 1:Ny
-                %         for ii = 1:Nx
-                %             if mask(jj, ii)
-                %                 cellPos = [x_center + Xgrid(jj, ii); Ygrid(jj, ii); 0];
-                %                 dir = cellPos - pPos;
-                %                 R_cell = norm(dir, 2);
-                %                 dir = dir / R_cell;
-                %                 [scaAng_cell, rotAng1_cell, rotAng2_cell] = scaRotAng(pDir, dir);
-                %                 [~, iAng_cell] = min(abs(cloudScatMatrix.theta - scaAng_cell / pi * 180));
-                %                 probCell = albedo(scaClLayer) *...
-                %                     A_pixel * (1 ./ R_cell.^2) * ...
-                %                     exp(- attenOD / abs(dir(3))) *...
-                %                     S11(scaClLayer, iAng_cell);
-                %                 SVTemp1_cell = rotSVPhi(SVIn, rotAng1_cell);
-                %                 SVTemp2_cell = [S11(scaClLayer, iAng_cell), S12(scaClLayer, iAng_cell), 0, 0; ...
-                %                     S12(scaClLayer, iAng_cell), S11(scaClLayer, iAng_cell), 0, 0; ...
-                %                     0, 0, S33(scaClLayer, iAng_cell), S34(scaClLayer, iAng_cell); ...
-                %                     0, 0, -S34(scaClLayer, iAng_cell), S33(scaClLayer, iAng_cell)] * ...
-                %                     SVTemp1_cell / S11(scaClLayer, iAng_cell);
-                %                 SVFinal_cell = rotSVPhi(rotSVPhi(SVTemp2_cell, -rotAng2_cell), atan2(dir(2), dir(1))) * probCell * 2^(nScas(iPhoton) - 1);
-                %                 diag.telMapI(jj, ii) = diag.telMapI(jj, ii) + SVFinal_cell(1) ;
-                %                 diag.telMapQ(jj, ii) = diag.telMapQ(jj, ii) + SVFinal_cell(2) ;
-                %                 diag.telMapU(jj, ii) = diag.telMapU(jj, ii) + SVFinal_cell(3) ;
-                %                 diag.telMapV(jj, ii) = diag.telMapV(jj, ii) + SVFinal_cell(4) ;
-                %                 thetaInc = acos(max(min(dot(dir, axisDir), 1), -1));
-                %                 if thetaInc <= maxAngle
-                %                     dTheta = maxAngle / nAngleGroups;
-                %                     if dTheta > 0
-                %                         binIdx = floor(thetaInc / dTheta) + 1;
-                %                         if binIdx > nAngleGroups
-                %                             binIdx = nAngleGroups;
-                %                         end
-                %                         diag.telMapI_groups(jj, ii, binIdx) = diag.telMapI_groups(jj, ii, binIdx) + SVFinal_cell(1) ;
-                %                         diag.telMapQ_groups(jj, ii, binIdx) = diag.telMapQ_groups(jj, ii, binIdx) + SVFinal_cell(2) ;
-                %                         diag.telMapU_groups(jj, ii, binIdx) = diag.telMapU_groups(jj, ii, binIdx) + SVFinal_cell(3) ;
-                %                         diag.telMapV_groups(jj, ii, binIdx) = diag.telMapV_groups(jj, ii, binIdx) + SVFinal_cell(4) ;
-                %                     end
-                %                 end
-                %             end
-                %         end
-                %     end
-                % end
-
                 % ========== 计算散射后的Stokes向量 ==========
                 % 第一步：根据散射几何旋转入射Stokes向量
                 SVTemp1 = rotSVPhi(SVIn, rotAng1);
                 
                 % 第二步：应用Mueller散射矩阵进行偏振变换
                 SVTemp2 = [S11(scaClLayer, iAng), S12(scaClLayer, iAng), 0, 0; ...
-                                       S12(scaClLayer, iAng), S11(scaClLayer, iAng), 0, 0; ...
-                                       0, 0, S33(scaClLayer, iAng), S34(scaClLayer, iAng); ...
-                                       0, 0, -S34(scaClLayer, iAng), S33(scaClLayer, iAng)] * ...
-                                    SVTemp1 / S11(scaClLayer, iAng);
+                           S12(scaClLayer, iAng), S11(scaClLayer, iAng), 0, 0; ...
+                           0, 0, S33(scaClLayer, iAng), S34(scaClLayer, iAng); ...
+                           0, 0, -S34(scaClLayer, iAng), S33(scaClLayer, iAng)] * ...
+                        SVTemp1 / S11(scaClLayer, iAng);
 
                 % ========== 计算返回时间和距离仓位 ==========
                 % 计算光子从散射点返回到激光雷达的总时间
                 % 包括：已传播距离 + 返回距离（考虑垂直分量）
-                timeBin = (len(iPhoton) + (pPos(3) - cloudCfg.clBase) / max(abs(pScaDir(3)), eps)) / 3e8 / (lidarCfg.binWidth * 1e-9);
+                timeBin = (len(iPhoton) + (pPos(3) - cloudCfg.clBase) / ...
+                    max(abs(pScaDir(3)), eps)) / ...
+                    3e8 / (lidarCfg.binWidth * 1e-9);
                 iBin = ceil(timeBin);
                 
                 % ========== 累积返回信号 ==========
@@ -444,10 +395,10 @@ for iPhoton = 1:nPhotons
             
             % 第二步：应用Mueller散射矩阵
             SVTemp2 = [S11(scaClLayer, iAng), S12(scaClLayer, iAng), 0, 0; ...
-                                   S12(scaClLayer, iAng), S11(scaClLayer, iAng), 0, 0; ...
-                                   0, 0, S33(scaClLayer, iAng), S34(scaClLayer, iAng); ...
-                                   0, 0, -S34(scaClLayer, iAng), S33(scaClLayer, iAng)] * ...
-                            SVTemp1 / S11(scaClLayer, iAng);
+                       S12(scaClLayer, iAng), S11(scaClLayer, iAng), 0, 0; ...
+                       0, 0, S33(scaClLayer, iAng), S34(scaClLayer, iAng); ...
+                       0, 0, -S34(scaClLayer, iAng), S33(scaClLayer, iAng)] * ...
+                      SVTemp1 / S11(scaClLayer, iAng);
             
             % ========== 计算子午面旋转角度 ==========
             % 用于将Stokes向量从散射平面旋转到新的传播方向参考系
@@ -548,4 +499,6 @@ if strcmp(p.Results.visible, 'on')
     xlabel('距离 (km)', 'FontSize', 10);
     ylabel('退偏振比', 'FontSize', 10);
     grid on;
+end
+
 end

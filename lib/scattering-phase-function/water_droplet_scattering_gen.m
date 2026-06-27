@@ -35,7 +35,7 @@ function water_droplet_scattering_gen(r, theta, inWL, varargin)
 %
 % 历史
 %   2023-05-24: Zhenping 首次编写
-%   2025-10-24: 补充中文注释，并整理 NetCDF 保存段中的变量命名与属性写入
+%   2025-10-24: 补充中文注释，并整理 NetCDF 保存段中的变量命名与属性写入（罗澄炜）
 % .. Authors: - zp.yin@whu.edu.cn
 
 %-----------------------------
