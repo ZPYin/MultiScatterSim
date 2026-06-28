@@ -80,11 +80,6 @@ addParameter(p, 'visible', 'on', @ischar);        % 结果可视化开关
 addParameter(p, 'debug', false, @islogical);      % 调试信息开关
 addParameter(p, 'useRussianRoulette', true, @islogical);      % 是否使用轮盘对赌
 addParameter(p, 'energyThreshold', 0.01, @isnumeric);         % 轮盘对赌能量阈值
-addParameter(p, 'recordHitMap', false, @islogical);
-addParameter(p, 'mapNx', 64, @isnumeric);
-addParameter(p, 'mapNy', 64, @isnumeric);
-addParameter(p, 'mapRadius', NaN, @isnumeric);
-addParameter(p, 'nAngleGroups', 5, @isnumeric);
 addParameter(p, 'useLocalAtten', false, @islogical); % 调试：使用本层局部透过而非累计垂直光学深度
 addParameter(p, 'scatMatrixFile', '', @ischar);      % 可选：显式指定水滴Mie散射查找表
 addParameter(p, 'angleSampler', 'fast', @ischar);    % fast|inverse
@@ -98,41 +93,6 @@ if ~ismember(angleSampler, {'fast', 'inverse'})
     error('angleSampler must be fast or inverse.');
 end
 
-diag = struct();
-diag.angleSampler = angleSampler;
-if p.Results.recordHitMap
-    Nx = p.Results.mapNx;
-    Ny = p.Results.mapNy;
-    mapRadius = p.Results.mapRadius;
-    if ~isfinite(mapRadius) || mapRadius <= 0
-        mapRadius = lidarCfg.rTel * 1e-3;
-    end
-    nAngleGroups = round(p.Results.nAngleGroups);
-    if nAngleGroups < 1
-        nAngleGroups = 1;
-    end
-    diag.mapNx = Nx;
-    diag.mapNy = Ny;
-    diag.mapRadius = mapRadius;
-    diag.nAngleGroups = nAngleGroups;
-    maxAngle = lidarCfg.FOV * 1e-3 / 2;
-    diag.angleBinEdges = linspace(0, maxAngle, nAngleGroups + 1);
-    diag.angleBinCenters = 0.5 * (diag.angleBinEdges(1:end-1) + diag.angleBinEdges(2:end));
-
-    xVals = linspace(-mapRadius, mapRadius, Nx);
-    yVals = linspace(-mapRadius, mapRadius, Ny);
-    [Xgrid, Ygrid] = meshgrid(xVals, yVals);
-    mask = (Xgrid.^2 + Ygrid.^2) <= mapRadius^2;
-    diag.telMapI = zeros(Ny, Nx);
-    diag.telMapQ = zeros(Ny, Nx);
-    diag.telMapU = zeros(Ny, Nx);
-    diag.telMapV = zeros(Ny, Nx);
-    diag.telMapI_groups = zeros(Ny, Nx, nAngleGroups);
-    diag.telMapQ_groups = zeros(Ny, Nx, nAngleGroups);
-    diag.telMapU_groups = zeros(Ny, Nx, nAngleGroups);
-    diag.telMapV_groups = zeros(Ny, Nx, nAngleGroups);
-    diag.mask = mask;
-end
 
 %% ========== 云层散射特性计算 ==========
 projectDir = fileparts(fileparts(fileparts(mfilename('fullpath'))));
@@ -144,8 +104,8 @@ addpath(fullfile(rootPath, 'scattering-phase-function'));
 addpath(fullfile(rootPath, 'cloud-microphysics'));
 
 % 项目根目录与数据库路径
-clScatMatrixFile = fullfile(projectDir, 'tests', 'data', ...
-    'water_droplet_scattering_532nm_finer_validation_r_step_0p01um.mat');
+clScatMatrixFile = fullfile(projectDir, 'data', ...
+    'water_cloud_scattering_phase_function_example.mat');
 if ~isempty(p.Results.scatMatrixFile)
     clScatMatrixFile = p.Results.scatMatrixFile;
 end

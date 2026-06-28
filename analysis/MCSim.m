@@ -1,4 +1,4 @@
-%% Parameter Definition
+﻿%% Parameter Definition
 % lidar
 lidarCfg.lambda = 532.0;   % incident wavelength. [nm]
 lidarCfg.rBeam = 5.0;   % radius of laser beam at z=0. [mm]
@@ -19,4 +19,4 @@ cloudCfg.clExt = 2e-2 * ones(1, cloudCfg.nClLayers);   % cloud extinction. [m-1]
 cloudCfg.clReff = 9 * ones(1, cloudCfg.nClLayers);   % cloud droplet effective radius. [um]
 
 %% MC
-MSMCSim(lidarCfg, cloudCfg, 'visible', 'on', 'debug', true, 'nPhoton', 1e4);
+MSMCSim(lidarCfg, cloudCfg, 'visible', 'off', 'debug', true, 'nPhoton', 1e4);
