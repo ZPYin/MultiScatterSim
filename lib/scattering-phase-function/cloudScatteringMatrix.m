@@ -55,8 +55,9 @@ addRequired(p, 'wdScatFile', @ischar);        % 水滴散射查找表路径（�
 addParameter(p, 'cloud_distribution', 'modified-gamma', @ischar);
 addParameter(p, 'kappa', 7, @isnumeric);      % 修正伽马分布形状参数（原版）
 addParameter(p, 'b', 1/9, @isnumeric);        % 论文版修正伽马分布形状参数（smmgDist_paper）
-addParameter(p, 'sigma_e', 2e-2, @isnumeric); % 云层消光系数（m^-1）
+addParameter(p, 'sigma_e', 2e-2, @isnumeric); % 云层消光系数（m^-1）—— 没有 N_d 时使用
 addParameter(p, 'R_eff', 5, @isnumeric);      % 有效半径（um）
+addParameter(p, 'N_d', [], @isnumeric);        % 数浓度 [m^-3]，优先级高于 sigma_e（多波长同云模式）
 
 parse(p, lambda, wdScatFile, varargin{:});
 
@@ -64,11 +65,15 @@ cloudScatMatrix = struct();                   % 预分配输出结构体
 
 mieScaInfo = load(wdScatFile);                % 读入 Mie 散射查找表（MAT 文件）
 
+% 小工具：支持标量参数自动扩展到各云层。
+pickLayerValue = @(x, iLayer) x(min(iLayer, numel(x)));
+
 % 根据云微物理分布类型，选择不同的体平均策略（当前仅实现 modified-gamma）
 switch lower(p.Results.cloud_distribution)
 case 'modified-gamma'
-    % 云层数（由 sigma_e 的长度决定）
-    nClLayer = length(p.Results.sigma_e);
+    % 云层数：由最长的层参数决定，标量参数自动扩展。
+    nClLayer = max([numel(p.Results.sigma_e), numel(p.Results.R_eff), ...
+        numel(p.Results.kappa), max(1, numel(p.Results.N_d))]);
 
     % 角度与半径矢量，统一形状
     theta = mieScaInfo.theta;
@@ -149,12 +154,16 @@ case 'modified-gamma'
     for iLayer = 1:nClLayer
         % —— 针对第 iLayer 层进行体平均 ——
         % 计算云滴粒径分布 n(r)
-        if length(p.Results.kappa) == 1
-            kappa_layer = p.Results.kappa;
+        kappa_layer = pickLayerValue(p.Results.kappa, iLayer);
+        reff_layer = pickLayerValue(p.Results.R_eff, iLayer);
+        % 构造 smmgDist 参数：N_d 优先（多波长同云），否则用 sigma_e
+        smmgArgs = {'kappa', kappa_layer, 'R_eff', reff_layer};
+        if ~isempty(p.Results.N_d)
+            smmgArgs = [smmgArgs, {'N_d', pickLayerValue(p.Results.N_d, iLayer)}];
         else
-            kappa_layer = p.Results.kappa(iLayer);
+            smmgArgs = [smmgArgs, {'sigma_e', pickLayerValue(p.Results.sigma_e, iLayer)}];
         end
-        n_r = smmgDist(r, 'kappa', kappa_layer, 'sigma_e', p.Results.sigma_e(iLayer), 'R_eff', p.Results.R_eff(iLayer));
+        n_r = smmgDist(r, smmgArgs{:});
 
         % 计算体平均的消光/散射系数（稳健地处理 Qext/Qsca 的维度差异）
         if hasQext && hasQsca
@@ -215,16 +224,16 @@ case 'modified-gamma'
 
             % 若无法稳定匹配 nR，则回退到 sigma_e
             if isempty(Qext_v) || isempty(Qsca_v) || length(Qext_v) ~= nR || length(Qsca_v) ~= nR
-                muExt(iLayer) = p.Results.sigma_e(iLayer);
-                muSca(iLayer) = p.Results.sigma_e(iLayer);
+                muExt(iLayer) = pickLayerValue(p.Results.sigma_e, iLayer);
+                muSca(iLayer) = pickLayerValue(p.Results.sigma_e, iLayer);
             else
                 muExt(iLayer) = pi * (1e-6)^2 * trapz(r, n_r .* (r.^2) .* Qext_v);
                 muSca(iLayer) = pi * (1e-6)^2 * trapz(r, n_r .* (r.^2) .* Qsca_v);
             end
         else
             % 若数据库不含 Qext/Qsca，则使用输入的 sigma_e 作为 muExt，假设 muSca≈muExt
-            muExt(iLayer) = p.Results.sigma_e(iLayer);
-            muSca(iLayer) = p.Results.sigma_e(iLayer);
+            muExt(iLayer) = pickLayerValue(p.Results.sigma_e, iLayer);
+            muSca(iLayer) = pickLayerValue(p.Results.sigma_e, iLayer);
         end
 
         % 计算体平均的偏振散射矩阵元素：使用散射截面加权
@@ -350,9 +359,24 @@ case 'modified-gamma-paper'
         S33_PD(iLayer, :) = trapz(r, S33 .* W, 1);
         S34_PD(iLayer, :) = trapz(r, S34 .* W, 1);
 
-        % 消光/散射系数：使用输入的 sigma_e（避免单位不一致）
-        muExt(iLayer) = p.Results.sigma_e(iLayer);
-        muSca(iLayer) = p.Results.sigma_e(iLayer);
+        % 消光/散射系数: N_d 模式由 Mie Qext 积分得到, sigma_e 模式直接使用输入
+        if ~isempty(p.Results.N_d) && isfield(mieScaInfo, 'Qext')
+            Qe = mieScaInfo.Qext;
+            if ndims(Qe) == 3
+                Qe = squeeze(Qe(wlIdx, :, :));
+            end
+            Qe = Qe(:);
+            if length(Qe) == nR
+                muExt(iLayer) = pi * (1e-6)^2 * trapz(r, f_r .* (r.^2) .* Qe);
+                muSca(iLayer) = muExt(iLayer);   % 近似
+            else
+                muExt(iLayer) = p.Results.sigma_e(iLayer);
+                muSca(iLayer) = p.Results.sigma_e(iLayer);
+            end
+        else
+            muExt(iLayer) = p.Results.sigma_e(iLayer);
+            muSca(iLayer) = p.Results.sigma_e(iLayer);
+        end
     end
 
     cloudScatMatrix.muExt = muExt;
