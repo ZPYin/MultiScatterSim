@@ -21,9 +21,9 @@ prepareMSMCOptics
 本模块不执行光子自由传播、多次散射循环、Stokes 参考平面旋转、回波距离门
 累加或微物理参数反演。
 
-散射数据库不随代码仓库发布。默认在本地查找
-`data/water_droplet_scattering_532nm_finer_validation_r_step_0p01um.mat`；
-也可以通过 `scatMatrixFile` 显式指定任意兼容数据库。
+仓库自带用于最小运行示例的散射数据库，默认文件为
+`data/water_cloud_scattering_phase_function_example.mat`；正式计算也可以通过
+`scatMatrixFile` 显式指定其他兼容的高分辨率数据库。
 
 ## 文件说明
 

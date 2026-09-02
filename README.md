@@ -56,14 +56,14 @@ analysis/MCSimGPU.m
 ```
 
 GPU 版本需要 MATLAB Parallel Computing Toolbox 和受支持的 GPU。CPU 与 GPU
-示例使用同一份本地 Mie 散射数据库和同一套光学预处理；数据库文件不随代码
-仓库发布，默认放置在：
+示例使用仓库自带的同一份 Mie 散射示例数据库和同一套光学预处理，默认文件为：
 
 ```text
-data/water_droplet_scattering_532nm_finer_validation_r_step_0p01um.mat
+data/water_cloud_scattering_phase_function_example.mat
 ```
 
 两个最小示例无需显式传入数据库路径；`prepareMSMCOptics` 会自动使用上述默认位置。
+正式计算也可以通过 `scatMatrixFile` 显式指定其他兼容的高分辨率数据库。
 
 GPU 模式的运行参数、CPU/GPU 物理过程对应关系及模块结构详见：
 

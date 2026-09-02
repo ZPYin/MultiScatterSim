@@ -18,7 +18,7 @@ parse(p, lidarCfg, cloudCfg, varargin{:});
 
 projectDir = fileparts(fileparts(fileparts(mfilename('fullpath'))));
 scatMatrixFile = fullfile(projectDir, 'data', ...
-    'water_droplet_scattering_532nm_finer_validation_r_step_0p01um.mat');
+    'water_cloud_scattering_phase_function_example.mat');
 if ~isempty(p.Results.scatMatrixFile)
     scatMatrixFile = p.Results.scatMatrixFile;
 end
