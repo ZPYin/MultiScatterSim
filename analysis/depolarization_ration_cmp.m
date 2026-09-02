@@ -1,4 +1,4 @@
-﻿function test_1layer_depolarization_ration_cmp()
+﻿function depolarization_ration_cmp()
 % 单层云线偏振退偏振比示例
 % 固定有效半径 reff=6 um，对比不同消光系数下的退偏振比随深度变化。
 

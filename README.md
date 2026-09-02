@@ -28,7 +28,7 @@ git clone https://github.com/ZPYin/MultiScatterSim.git
 进入项目根目录：
 
 ```bash
-cd MultiScatterSim-dev
+cd MultiScatterSim
 ```
 
 在 MATLAB 中打开项目根目录，并运行：

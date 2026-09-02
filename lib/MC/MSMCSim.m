@@ -83,6 +83,7 @@ diag.angleSampler = angleSampler;
 addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'sampling'));
 addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'scattering-phase-function'));
 addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'cloud-microphysics'));
+addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'MC_Optics'));
 
 
 if isempty(p.Results.preparedOptics)
@@ -155,16 +156,12 @@ for iPhoton = 1:nPhotons
     isAlive = true;                    % 光子存活标志
     
 
-    pPos(1) = rand(1, 1) * rCl;       % X方向随机位置
-    pPos(2) = rand(1, 1) * rCl;       % Y方向随机位置
+    % 在云底完整圆形光束截面内均匀抽样：r=R*sqrt(U)，phi∈[0, 2*pi)
+    launchRadius = rCl * sqrt(rand(1, 1));
+    launchAzimuth = 2 * pi * rand(1, 1);
+    pPos(1) = launchRadius * cos(launchAzimuth);
+    pPos(2) = launchRadius * sin(launchAzimuth);
     pPos(3) = cloudCfg.clBase;         % Z方向设为云底高度
-    
-
-    while (norm(pPos(1:2), 2) > rCl)
-        % 重新生成位置直到满足圆形边界条件
-        pPos(1) = rand(1, 1) * rCl;
-        pPos(2) = rand(1, 1) * rCl;
-    end
     
 
     pDir = pPos / norm(pPos - [0; 0; 0], 2);

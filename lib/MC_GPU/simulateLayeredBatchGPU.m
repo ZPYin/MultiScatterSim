@@ -24,8 +24,9 @@ end
         rCl = lidarCfg.rBeam * 1e-3 + ...
             lidarCfg.divBeam * 1e-3 / 2 * cloudCfg.clBase * 1e-3;
 
+        % Uniform launch over the complete circular beam cross-section.
         radius = cast(rCl, 'like', proto) .* sqrt(rand(nThis, 1, 'like', proto));
-        azimuth = cast(pi/2, 'like', proto) .* rand(nThis, 1, 'like', proto);
+        azimuth = cast(2*pi, 'like', proto) .* rand(nThis, 1, 'like', proto);
         pPos = zeros(nThis, 3, 'like', proto);
         pPos(:, 1) = radius .* cos(azimuth);
         pPos(:, 2) = radius .* sin(azimuth);
@@ -297,8 +298,9 @@ end
         rCl = lidarCfg.rBeam * 1e-3 + ...
             lidarCfg.divBeam * 1e-3 / 2 * cloudCfg.clBase * 1e-3;
 
+        % Uniform launch over the complete circular beam cross-section.
         radius = cast(rCl, 'like', proto) .* sqrt(rand(nThis, 1, 'like', proto));
-        azimuth = cast(pi/2, 'like', proto) .* rand(nThis, 1, 'like', proto);
+        azimuth = cast(2*pi, 'like', proto) .* rand(nThis, 1, 'like', proto);
         pos = zeros(nThis, 3, 'like', proto);
         pos(:, 1) = radius .* cos(azimuth);
         pos(:, 2) = radius .* sin(azimuth);
@@ -616,4 +618,3 @@ bins = min(double(nScas), maxOrder) + 1;
 out = out + accumarray(bins, ones(size(bins), 'like', proto), ...
     [maxOrder + 1, 1], @sum, cast(0, 'like', proto));
 end
-
