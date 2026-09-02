@@ -63,7 +63,11 @@ parse(p, lambda, wdScatFile, varargin{:});
 
 cloudScatMatrix = struct();                   % 预分配输出结构体
 
-mieScaInfo = load(wdScatFile);                % 读入 Mie 散射查找表（MAT 文件）
+% Cache the normalized per-radius Mueller basis.  Parameter sweeps vary the
+% cloud size distribution but repeatedly use the same large Mie database.
+% Keeping only the reduced basis avoids reloading four amplitude arrays and
+% rebuilding S11/S12/S33/S34 for every Monte Carlo task.
+mieScaInfo = loadCachedScatteringBasis(wdScatFile, lambda);
 
 % 小工具：支持标量参数自动扩展到各云层。
 pickLayerValue = @(x, iLayer) x(min(iLayer, numel(x)));
@@ -108,44 +112,10 @@ case 'modified-gamma'
     S34_PD = NaN(nClLayer, nTheta);
 
     % 构造复数散射振幅 S1/S2：自动兼容 2D/3D 数据格式
-    S1r = mieScaInfo.S1_Real; S1i = mieScaInfo.S1_Imag;
-    S2r = mieScaInfo.S2_Real; S2i = mieScaInfo.S2_Imag;
-    if ndims(S1r) == 3
-        S1 = squeeze(S1r(wlIdx, :, :)) + 1i * squeeze(S1i(wlIdx, :, :));
-        S2 = squeeze(S2r(wlIdx, :, :)) + 1i * squeeze(S2i(wlIdx, :, :));
-    else
-        S1 = S1r + 1i * S1i;
-        S2 = S2r + 1i * S2i;
-    end
-    % 保证 S1/S2 维度为 [nR x nTheta]
-    [s1_m, s1_n] = size(S1);
-    if s1_m == nTheta && s1_n == nR
-        S1 = S1'; S2 = S2';
-    elseif s1_m ~= nR || s1_n ~= nTheta
-        error('S1/S2 dimensions do not match r/theta: expected [%d x %d], got [%d x %d].', nR, nTheta, s1_m, s1_n);
-    end
-
-    % 由 S1/S2 计算 Mueller 矩阵中涉及的 4 个元素（标准公式）：
-    S11 = 0.5 * (abs(S1).^2 + abs(S2).^2);
-    S12 = 0.5 * (abs(S2).^2 - abs(S1).^2);
-    S33 = real(0.5 * (conj(S2) .* S1 + S2 .* conj(S1))); % 取实部以抑制数值噪声
-    S34 = real(imag(conj(S1) .* (S2)));                    % 取实部以抑制数值噪声
-
-    % 角度归一化（单位：deg）：使 ∫ S11(θ) sin(θ) dθ ≈ 1
-    % 正确的三维空间相函数归一化应该包含立体角权重 sin(θ)
-    thetaDeg = theta;
-    thetaRad = thetaDeg * pi / 180;
-    
-    % 标准公式：1/2 * 积分( P(θ)*sinθ dθ ) = 1 => 积分值应为 2
-    % 注意：积分操作必须在弧度(thetaRad)下进行！
-    integral_val = trapz(thetaRad, S11 .* repmat(sin(thetaRad), [size(S11, 1), 1]), 2);    % [nR x 1]
-    norm_ang = integral_val / 2;
-    
-    norm_ang(norm_ang == 0) = eps;
-    S11 = S11 ./ norm_ang;
-    S12 = S12 ./ norm_ang;
-    S33 = S33 ./ norm_ang;
-    S34 = S34 ./ norm_ang;
+    S11 = mieScaInfo.S11_Normalized;
+    S12 = mieScaInfo.S12_Normalized;
+    S33 = mieScaInfo.S33_Normalized;
+    S34 = mieScaInfo.S34_Normalized;
 
     % 可选的 Qext/Qsca（若不存在则回退到输入 sigma_e）
     hasQext = isfield(mieScaInfo, 'Qext');
@@ -286,32 +256,10 @@ case 'modified-gamma-paper'
     S33_PD = NaN(nClLayer, nTheta);
     S34_PD = NaN(nClLayer, nTheta);
 
-    S1r = mieScaInfo.S1_Real; S1i = mieScaInfo.S1_Imag;
-    S2r = mieScaInfo.S2_Real; S2i = mieScaInfo.S2_Imag;
-    if ndims(S1r) == 3
-        S1 = squeeze(S1r(wlIdx, :, :)) + 1i * squeeze(S1i(wlIdx, :, :));
-        S2 = squeeze(S2r(wlIdx, :, :)) + 1i * squeeze(S2i(wlIdx, :, :));
-    else
-        S1 = S1r + 1i * S1i; S2 = S2r + 1i * S2i;
-    end
-    [s1_m, s1_n] = size(S1);
-    if s1_m == nTheta && s1_n == nR
-        S1 = S1'; S2 = S2';
-    elseif s1_m ~= nR || s1_n ~= nTheta
-        error('S1/S2 dimensions do not match r/theta: expected [%d x %d], got [%d x %d].', nR, nTheta, s1_m, s1_n);
-    end
-
-    S11 = 0.5 * (abs(S1).^2 + abs(S2).^2);
-    S12 = 0.5 * (abs(S2).^2 - abs(S1).^2);
-    S33 = real(0.5 * (conj(S2) .* S1 + S2 .* conj(S1)));
-    S34 = real(-imag(S1 .* conj(S2)));
-
-    thetaDeg = theta;
-    thetaRad = thetaDeg * pi / 180;
-    integral_val = trapz(thetaRad, S11 .* repmat(sin(thetaRad), [size(S11, 1), 1]), 2);
-    norm_ang = integral_val / 2;
-    norm_ang(norm_ang == 0) = eps;
-    S11 = S11 ./ norm_ang; S12 = S12 ./ norm_ang; S33 = S33 ./ norm_ang; S34 = S34 ./ norm_ang;
+    S11 = mieScaInfo.S11_Normalized;
+    S12 = mieScaInfo.S12_Normalized;
+    S33 = mieScaInfo.S33_Normalized;
+    S34 = mieScaInfo.S34_Normalized;
 
     % 提取 Qsca（若数据库包含），用于散射截面加权
     hasQsca_paper = isfield(mieScaInfo, 'Qsca');
@@ -392,4 +340,117 @@ otherwise
     error('Unknown cloud microphysical distribution: %s', p.Results.cloud_distribution);
 end
 
+end
+
+function basis = loadCachedScatteringBasis(wdScatFile, lambda)
+% Keep one wavelength basis per MATLAB process.  GPU sweeps should group
+% tasks by wavelength, so a one-entry cache provides most of the benefit
+% without retaining several hundred MB for every wavelength.
+persistent cachedKey cachedBasis
+
+fileInfo = dir(wdScatFile);
+if isempty(fileInfo)
+    error('cloudScatteringMatrix:MissingDatabase', ...
+        'Scattering database does not exist: %s', wdScatFile);
+end
+cacheKey = sprintf('%s|%.12g|%d|%.15g', ...
+    char(wdScatFile), double(lambda), fileInfo.bytes, fileInfo.datenum);
+if ~isempty(cachedKey) && strcmp(cachedKey, cacheKey)
+    basis = cachedBasis;
+    return;
+end
+
+raw = load(wdScatFile);
+theta = raw.theta(:).';
+r = raw.r(:);
+nTheta = numel(theta);
+nR = numel(r);
+
+if isfield(raw, 'inWL')
+    wavelengths = raw.inWL(:);
+    wlIdx = find(abs(wavelengths - lambda) < 1, 1, 'first');
+    if isempty(wlIdx)
+        error('cloudScatteringMatrix:MissingWavelength', ...
+            'Scattering properties at %g nm are not available in %s.', ...
+            lambda, wdScatFile);
+    end
+    selectedWavelength = wavelengths(wlIdx);
+else
+    wlIdx = 1;
+    selectedWavelength = lambda;
+end
+
+S1 = extractAmplitude(raw.S1_Real, raw.S1_Imag, wlIdx, nR, nTheta);
+S2 = extractAmplitude(raw.S2_Real, raw.S2_Imag, wlIdx, nR, nTheta);
+
+S11 = 0.5 * (abs(S1).^2 + abs(S2).^2);
+S12 = 0.5 * (abs(S2).^2 - abs(S1).^2);
+S33 = real(0.5 * (conj(S2) .* S1 + S2 .* conj(S1)));
+S34 = real(imag(conj(S1) .* S2));
+
+thetaRad = theta * pi / 180;
+integralValue = trapz(thetaRad, ...
+    S11 .* repmat(sin(thetaRad), [nR, 1]), 2);
+normalization = integralValue / 2;
+normalization(normalization == 0) = eps;
+
+basis = struct();
+basis.theta = theta;
+basis.r = r;
+basis.inWL = selectedWavelength;
+basis.S11_Normalized = S11 ./ normalization;
+basis.S12_Normalized = S12 ./ normalization;
+basis.S33_Normalized = S33 ./ normalization;
+basis.S34_Normalized = S34 ./ normalization;
+if isfield(raw, 'Qext')
+    basis.Qext = extractRadiusVector(raw.Qext, wlIdx, nR);
+end
+if isfield(raw, 'Qsca')
+    basis.Qsca = extractRadiusVector(raw.Qsca, wlIdx, nR);
+end
+
+cachedKey = cacheKey;
+cachedBasis = basis;
+end
+
+function amplitude = extractAmplitude(realPart, imagPart, wlIdx, nR, nTheta)
+if ndims(realPart) == 3
+    amplitude = squeeze(realPart(wlIdx, :, :)) + ...
+        1i * squeeze(imagPart(wlIdx, :, :));
+else
+    amplitude = realPart + 1i * imagPart;
+end
+[nRows, nColumns] = size(amplitude);
+if nRows == nTheta && nColumns == nR
+    amplitude = amplitude.';
+elseif nRows ~= nR || nColumns ~= nTheta
+    error('cloudScatteringMatrix:AmplitudeDimensions', ...
+        'Expected amplitude size [%d %d], received [%d %d].', ...
+        nR, nTheta, nRows, nColumns);
+end
+end
+
+function vector = extractRadiusVector(values, wlIdx, nR)
+vector = [];
+if isvector(values)
+    candidate = values(:);
+    if numel(candidate) == nR
+        vector = candidate;
+    end
+elseif ismatrix(values)
+    if size(values, 2) == nR
+        vector = values(min(wlIdx, size(values, 1)), :).';
+    elseif size(values, 1) == nR
+        vector = values(:, min(wlIdx, size(values, 2)));
+    end
+elseif ndims(values) == 3
+    if size(values, 2) == nR
+        vector = squeeze(values(min(wlIdx, size(values, 1)), :, 1));
+    elseif size(values, 1) == nR
+        vector = squeeze(values(:, min(wlIdx, size(values, 2)), 1));
+    end
+end
+if isempty(vector)
+    vector = values;
+end
 end

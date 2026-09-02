@@ -7,6 +7,8 @@ MUSS 是一个基于 MATLAB 的云层多次散射模拟程序，主要用于模�
 | 模块 | 说明 |
 |---|---|
 | `lib/MC/MSMCSim.m` | 蒙特卡洛多次散射主程序 |
+| `lib/MC_GPU/MSMCSimGPU.m` | GPU 多次散射公共入口 |
+| `lib/MC_Optics/prepareMSMCOptics.m` | CPU/GPU 共用的云光学预处理 |
 | `lib/MC/freeRunning.m` | 云层中光子的自由程采样 |
 | `lib/MC/updateDir.m` | 光子散射后的传播方向更新 |
 | `lib/MC/rotSVPhi.m` | Stokes 向量旋转 |
@@ -46,6 +48,26 @@ analysis/MCSim.m
 ```
 
 该脚本配置仿真输入参数，并调用 `MSMCSim.m` 主程序运行多次散射模拟。
+
+GPU 最小运行示例为：
+
+```text
+analysis/MCSimGPU.m
+```
+
+GPU 版本需要 MATLAB Parallel Computing Toolbox 和受支持的 GPU。CPU 与 GPU
+示例使用同一份本地 Mie 散射数据库和同一套光学预处理；数据库文件不随代码
+仓库发布，默认放置在：
+
+```text
+data/water_droplet_scattering_532nm_finer_validation_r_step_0p01um.mat
+```
+
+两个最小示例无需显式传入数据库路径；`prepareMSMCOptics` 会自动使用上述默认位置。
+
+GPU 模式的运行参数、CPU/GPU 物理过程对应关系及模块结构详见：
+
+[`lib/MC_GPU/README.md`](./lib/MC_GPU/README.md)
 
 若需要运行单层云退偏比验证示例，可参考：
 

@@ -1,4 +1,8 @@
-﻿%% Parameter Definition
+%% Setup
+run(fullfile(fileparts(fileparts(mfilename('fullpath'))), ...
+    'setupMSToolbox.m'));
+
+%% Parameter Definition
 % lidar
 lidarCfg.lambda = 532.0;   % incident wavelength. [nm]
 lidarCfg.rBeam = 5.0;   % radius of laser beam at z=0. [mm]
@@ -18,5 +22,6 @@ cloudCfg.kappa = 9 * ones(1, cloudCfg.nClLayers);   % shape factor of modified g
 cloudCfg.clExt = 2e-2 * ones(1, cloudCfg.nClLayers);   % cloud extinction. [m-1]
 cloudCfg.clReff = 9 * ones(1, cloudCfg.nClLayers);   % cloud droplet effective radius. [um]
 
-%% MC
-MSMCSim(lidarCfg, cloudCfg, 'visible', 'off', 'debug', true, 'nPhoton', 1e4);
+%% CPU MC
+rng(1);
+MSMCSim(lidarCfg, cloudCfg, 'visible', 'on', 'debug', false, 'nPhoton', 1e4);

@@ -64,6 +64,7 @@ addParameter(p, 'energyThreshold', 0.01, @isnumeric);
 addParameter(p, 'useLocalAtten', false, @islogical); % 调试：使用本层局部透过而非累计垂直光学深度
 addParameter(p, 'scatMatrixFile', '', @ischar);
 addParameter(p, 'angleSampler', 'fast', @ischar);    % fast|inverse
+addParameter(p, 'preparedOptics', [], @(x) isempty(x) || isstruct(x));
 % 执行参数解析
 parse(p, lidarCfg, cloudCfg, varargin{:});
 
@@ -84,58 +85,42 @@ addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'scattering-phase-
 addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'cloud-microphysics'));
 
 
-projectDir = fileparts(fileparts(fileparts(mfilename('fullpath'))));
-clScatMatrixFile = fullfile(projectDir, 'tests', 'data', ...
-    'water_droplet_scattering_532nm_finer_validation_r_step_0p01um.mat');
-if ~isempty(p.Results.scatMatrixFile)
-    clScatMatrixFile = p.Results.scatMatrixFile;
-end
-
-    %'water_droplet_scattering_532nm_finer_validation_r_step_0p01um.mat');  % 可选：高精度数据库
-
-
-% 基于Mie散射理论，考虑云滴粒径分布（修正伽马分布）
-dist = 'modified-gamma';
-unmatchedArgs = p.Unmatched;
-if isfield(unmatchedArgs, 'cloud_distribution')
-    dist = unmatchedArgs.cloud_distribution;
-    unmatchedArgs = rmfield(unmatchedArgs, 'cloud_distribution');
-end
-extraArgs = reshape([fieldnames(unmatchedArgs).'; struct2cell(unmatchedArgs).'], 1, []);
-
-
-cloudArgs = {
-    'cloud_distribution', dist, ...
-    'kappa', cloudCfg.kappa, ...
-    'R_eff', cloudCfg.clReff, ...
-    'b', 1/9};
-cloudArgs = [cloudArgs, extraArgs];
-
-if isfield(cloudCfg, 'N_d') && ~isempty(cloudCfg.N_d)
-    cloudArgs = [cloudArgs, {'N_d', cloudCfg.N_d}];
+if isempty(p.Results.preparedOptics)
+    unmatchedArgs = p.Unmatched;
+    extraArgs = reshape([fieldnames(unmatchedArgs).'; struct2cell(unmatchedArgs).'], 1, []);
+    optics = prepareMSMCOptics(lidarCfg, cloudCfg, ...
+        'scatMatrixFile', p.Results.scatMatrixFile, extraArgs{:});
+    diag.opticsSource = 'computed';
 else
-    cloudArgs = [cloudArgs, {'sigma_e', cloudCfg.clExt}];
+    optics = p.Results.preparedOptics;
+    validatePreparedOptics(optics, lidarCfg, cloudCfg);
+    diag.opticsSource = 'prepared';
 end
 
-cloudScatMatrix = cloudScatteringMatrix(lidarCfg.lambda, clScatMatrixFile, cloudArgs{:});
+cloudScatMatrix = optics.cloudScatMatrix;
 
 % 提取关键光学参数
-muExt = cloudScatMatrix.muExt;     % 消光系数 [m^-1]
-muSca = cloudScatMatrix.muSca;     % 散射系数 [m^-1]  
-albedo = muSca ./ muExt;
+muExt = optics.muExt;     % 消光系数 [m^-1]
+muSca = optics.muSca;     % 散射系数 [m^-1]
+albedo = optics.albedo;
+
+% Publish the exact optical properties used by photon transport so that
+% full-profile composition uses the same cloud optical depth.
+diag.muExt = muExt;
+diag.muSca = muSca;
+diag.albedo = albedo;
 
 % 提取Mueller散射矩阵元素（用于偏振计算）
-S11 = cloudScatMatrix.S11;
-S12 = cloudScatMatrix.S12;        % 线偏振相关的散射矩阵元素
-S33 = cloudScatMatrix.S33;
-S34 = cloudScatMatrix.S34;
+S11 = optics.S11;
+S12 = optics.S12;        % 线偏振相关的散射矩阵元素
+S33 = optics.S33;
+S34 = optics.S34;
 
 
 
-thetaGrid = cloudScatMatrix.theta;
-thetaWeights = [0, diff(thetaGrid)] .* sin(thetaGrid * pi / 180);
-cdfS11 = cumsum(S11 .* thetaWeights, 2);
-cdfS12 = cumsum(S12 .* thetaWeights, 2);
+thetaGrid = optics.theta;
+cdfS11 = optics.cdfS11;
+cdfS12 = optics.cdfS12;
 
 % ========== 云层边界设置 ==========
 % 根据Winker & Poole (1995)的建议，云边界对应光学厚度为2
@@ -155,6 +140,11 @@ diag.SVReturnLayer = zeros(4, lidarCfg.nBins, cloudCfg.nClLayers); % 分层返�
 len = zeros(1, nPhotons);
 nScas = zeros(1, nPhotons);
 layerScatterCount = zeros(1, cloudCfg.nClLayers); % 分层散射事件计数
+
+% 散射阶数诊断: 按阶数累积返回信号
+maxOrderEstimate = 50;
+diag.SVByOrder = zeros(4, lidarCfg.nBins, maxOrderEstimate);
+diag.orderPhotonCount = zeros(1, maxOrderEstimate);
 
 for iPhoton = 1:nPhotons
 
@@ -300,6 +290,13 @@ for iPhoton = 1:nPhotons
                     SV_final = rotSVPhi(rotSVPhi(SVTemp2, -rotAng2), atan2(pScaDir(2), pScaDir(1))) * probEnter* 2^(nScas(iPhoton) - 1);
                     SVReturn(:, iBin) = SVReturn(:, iBin) + SV_final;
                     diag.SVReturnLayer(:, iBin, scaClLayer) = diag.SVReturnLayer(:, iBin, scaClLayer) + SV_final;
+
+                    % 散射阶数诊断: 接收阶数 = 已完成随机散射数 + 本次强制散射
+                    order = nScas(iPhoton) + 1;
+                    if order <= maxOrderEstimate
+                        diag.SVByOrder(:, iBin, order) = diag.SVByOrder(:, iBin, order) + SV_final;
+                        diag.orderPhotonCount(order) = diag.orderPhotonCount(order) + 1;
+                    end
                 end
 
                 % ========== 更新剩余光子强度 ==========
@@ -308,16 +305,15 @@ for iPhoton = 1:nPhotons
 
             end
 
-            % ========== 随机散射事件处理 ==========
+            % ========== 主光子包的随机散射 ==========
+            % 上述半解析步骤只累计从当前散射点指向接收机的条件贡献。
+            % 主光子包扣除该贡献权重后，仍按散射相函数抽样新的传播方向，
+            % 并继续后续随机传输。
 
-            
-            % ========== 随机采样散射角度 ==========
-
+            % 随机采样相对方位角
             rotAng1 = rand(1, 1) * 2 * pi;
-            
 
-
-
+            % 在该方位角对应的偏振加权相函数下抽样散射角
             qRot = SVIn(2) * cos(2 * rotAng1) + SVIn(3) * sin(2 * rotAng1);
             if strcmp(angleSampler, 'inverse')
                 yPhase = S11(scaClLayer, :) * SVIn(1) + S12(scaClLayer, :) * qRot;
@@ -399,40 +395,100 @@ diag.nScasHist = histcounts(nScas, diag.nScasHistEdges);
 % 分层散射事件计数
 diag.layerScatterCount = layerScatterCount;
 
+% ========== 散射阶数分解的偏振诊断 ==========
+diag.maxOrderEstimate = maxOrderEstimate;
+I_by_order = squeeze(sum(diag.SVByOrder(1, :, :), 1))';  % [maxOrder x 1]
+Q_by_order = squeeze(sum(diag.SVByOrder(2, :, :), 1))';
+diag.I_by_order = I_by_order;
+diag.Q_by_order = Q_by_order;
+diag.Pperp_by_order = (I_by_order - Q_by_order) / 2;
+diag.Ppar_by_order = (I_by_order + Q_by_order) / 2;
+diag.delta_by_order = diag.Pperp_by_order ./ max(diag.Ppar_by_order, eps);
+diag.f_by_order = I_by_order ./ max(sum(I_by_order), eps);
+diag.lastActiveOrder = find(I_by_order > 0, 1, 'last');
+if isempty(diag.lastActiveOrder), diag.lastActiveOrder = 0; end
+
 %% ========== Result display ==========
 if strcmp(p.Results.visible, 'on')
-    figure('Color', 'w');
+    % CPU and GPU use the same diagnostic quantities and axis conventions.
+    counts = double(diag.nScasHist(:).');
+    lastNonzero = find(counts > 0, 1, 'last');
+    if isempty(lastNonzero)
+        counts = 0;
+    else
+        counts = counts(1:lastNonzero);
+    end
+    orders = 0:(numel(counts) - 1);
 
-    subplot(311);
-    histogram(nScas);
+    distanceAxis = (1:lidarCfg.nBins) * lidarCfg.binWidth * 0.15;
+    IPlot = abs(double(SVReturn(1, :)));
+    QPlot = abs(double(SVReturn(2, :)));
+    IPlot(IPlot == 0) = NaN;
+    QPlot(QPlot == 0) = NaN;
+
+    denominator = double(SVReturn(1, :) + SVReturn(2, :));
+    signalFloor = max(max(abs(denominator)) * 1e-12, eps);
+    validDelta = isfinite(denominator) & denominator > signalFloor;
+    delta = NaN(1, lidarCfg.nBins);
+    delta(validDelta) = double(SVReturn(1, validDelta) - ...
+        SVReturn(2, validDelta)) ./ denominator(validDelta);
+
+    figure('Color', 'w', 'Name', 'MSMC diagnostic results', ...
+        'NumberTitle', 'off');
+
+    subplot(3, 1, 1);
+    bar(orders, counts, 1, 'FaceColor', [0.25, 0.60, 0.82], ...
+        'EdgeColor', [0.15, 0.15, 0.15]);
+    xlim([-0.5, max(10, orders(end) + 1)]);
     title('Photon scattering order distribution', 'FontSize', 12);
     xlabel('Scattering order', 'FontSize', 10);
     ylabel('Photon count', 'FontSize', 10);
+    grid on;
 
-    subplot(312);
+    subplot(3, 1, 2);
+    semilogy(distanceAxis, IPlot, 'LineWidth', 1.0, ...
+        'DisplayName', 'I');
     hold on;
-    distanceAxis = (1:lidarCfg.nBins) * lidarCfg.binWidth * 0.15;
-    plot(distanceAxis, SVReturn(1, :), 'DisplayName', 'I');
-    plot(distanceAxis, SVReturn(2, :), 'DisplayName', 'Q');
-    plot(distanceAxis, SVReturn(3, :), 'DisplayName', 'U');
-    plot(distanceAxis, SVReturn(4, :), 'DisplayName', 'V');
-    xlim([0, lidarCfg.nBins * lidarCfg.binWidth * 0.15]);
-    set(gca, 'YScale', 'log');
+    semilogy(distanceAxis, QPlot, 'LineWidth', 1.0, ...
+        'DisplayName', '|Q|');
+    hold off;
+    xlim([0, distanceAxis(end)]);
     title('Returned Stokes components', 'FontSize', 12);
-    xlabel('Distance (km)', 'FontSize', 10);
+    xlabel('Distance (m)', 'FontSize', 10);
     ylabel('Signal intensity', 'FontSize', 10);
-    legend('show');
+    legend('show', 'Location', 'best');
+    grid on;
 
-    subplot(313);
-    depRatio = (SVReturn(1, :) - SVReturn(2, :)) ./ (SVReturn(1, :) + SVReturn(2, :));
-    plot(distanceAxis, depRatio, 'LineWidth', 1.5);
+    subplot(3, 1, 3);
+    plot(distanceAxis, delta, 'LineWidth', 1.5);
+    xlim([0, distanceAxis(end)]);
     ylim([0, 1]);
-    xlim([0, lidarCfg.nBins * lidarCfg.binWidth * 0.15]);
     title('Linear depolarization ratio', 'FontSize', 12);
-    xlabel('Distance (km)', 'FontSize', 10);
+    xlabel('Distance (m)', 'FontSize', 10);
     ylabel('Depolarization ratio', 'FontSize', 10);
     grid on;
 end
 
+end
+
+function validatePreparedOptics(optics, lidarCfg, cloudCfg)
+required = {'cloudScatMatrix', 'muExt', 'muSca', 'albedo', ...
+    'S11', 'S12', 'S33', 'S34', 'theta', 'cdfS11', 'cdfS12'};
+for iField = 1:numel(required)
+    if ~isfield(optics, required{iField})
+        error('MSMCSim:InvalidPreparedOptics', ...
+            'preparedOptics is missing field "%s".', required{iField});
+    end
+end
+if isfield(optics, 'lambda') && optics.lambda ~= lidarCfg.lambda
+    error('MSMCSim:PreparedOpticsWavelength', ...
+        'preparedOptics wavelength (%g nm) does not match lidarCfg.lambda (%g nm).', ...
+        optics.lambda, lidarCfg.lambda);
+end
+if numel(optics.muExt) ~= cloudCfg.nClLayers
+    error('MSMCSim:PreparedOpticsLayers', ...
+        'preparedOptics has %d layers but cloudCfg.nClLayers is %d.', ...
+        numel(optics.muExt), cloudCfg.nClLayers);
+end
 end
 

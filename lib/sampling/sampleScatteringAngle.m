@@ -30,7 +30,5 @@ idx = find(cdf > u, 1, 'first');
 if isempty(idx)
     idx = numel(thetaGrid);
 end
-
 thetaSample = thetaGrid(idx);
-
 end
