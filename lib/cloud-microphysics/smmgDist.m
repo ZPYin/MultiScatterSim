@@ -65,6 +65,7 @@ addRequired(p, 'r', @isnumeric);                    % 必需参数：半径数�
 addParameter(p, 'kappa', 7, @isnumeric);            % 可选参数：形状参数，默认值7
 addParameter(p, 'sigma_e', 6e-2, @isnumeric);       % 可选参数：消光系数，默认值6e-2 m^{-1}
 addParameter(p, 'R_eff', 9, @isnumeric);            % 可选参数：有效半径，默认值9 μm
+addParameter(p, 'N_d', [], @isnumeric);             % 可选参数：数浓度 [m^-3]，优先级高于 sigma_e
 
 % 解析输入参数
 parse(p, r, varargin{:});
@@ -76,13 +77,20 @@ R_m = p.Results.R_eff ./ (p.Results.kappa + 2);   % Eq.(8) Ref (1)
 % 根据参考文献[1]的公式(11)计算k参数
 k = (p.Results.kappa + 1) .* p.Results.kappa ./ (p.Results.kappa + 2).^2;   % Eq.(11) Ref (1)
 
-% 根据参考文献[2]的公式(4)计算云滴总数浓度
-N_d = 1 / (2 * pi) * p.Results.sigma_e ./ (k .* p.Results.R_eff.^2);   % Eq.(4) Ref(2)
+% 优先使用 N_d（多波长同云模式），否则由 sigma_e 反推 N_d（单波长模式）。
+% 这里的 N_d 使用真实数浓度单位 [m^-3]。
+if ~isempty(p.Results.N_d)
+    N_d = p.Results.N_d;
+else
+    % 根据参考文献[2]的公式(4)由消光系数推算云滴总数浓度。
+    % R_eff 输入单位为 um，计算截面积时需换算到 m。
+    N_d = 1 / (2 * pi) * p.Results.sigma_e ./ (k .* (p.Results.R_eff * 1e-6).^2);   % Eq.(4) Ref(2)
+end
 
 % 计算单模态修正伽马分布的云滴数浓度
 % 基于修正伽马分布公式：n(r) = N_d/R_m * (r/R_m)^(κ-1) * exp(-r/R_m) / Γ(κ)
 % 其中 Γ(κ) 是伽马函数，对于任意实数κ > 0
 n_r = N_d ./ R_m ./ gamma(p.Results.kappa) .* ...
-      (r ./ R_m).^(p.Results.kappa - 1) .* exp(- r ./ R_m) * 1e12;
+      (r ./ R_m).^(p.Results.kappa - 1) .* exp(- r ./ R_m);
 
 end
