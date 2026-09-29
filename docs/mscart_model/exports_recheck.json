@@ -1,0 +1,75 @@
+{
+  "passed": true,
+  "model_root": "C:\\Users\\11\\Downloads\\GitHub-repository\\MultiScatterSim-dev",
+  "uploaded": false,
+  "model_exports": {
+    "ground": {
+      "file": "ground/model_results.csv",
+      "rows": 720,
+      "configurations": 4,
+      "repeats_per_configuration": 3,
+      "grid_complete": true,
+      "values_finite": true,
+      "order_budget_passed": true,
+      "sha256": "d986e6c57a981db51c854269a3f5dd1f31aa0a00b0a0b98366df8e43734fa2b0"
+    },
+    "satellite": {
+      "file": "satellite/model_results.csv",
+      "rows": 900,
+      "configurations": 3,
+      "repeats_per_configuration": 3,
+      "grid_complete": true,
+      "values_finite": true,
+      "order_budget_passed": true,
+      "sha256": "e8cf04e2bee326ffc4ed179c3e550ed8a22dda67ceb65ed3ca022b26a6593ba6"
+    }
+  },
+  "configurations": 7,
+  "input_correspondence": [
+    {
+      "case": "ground",
+      "level": "low",
+      "phase_values_equal": true,
+      "angle_grid_equal": true,
+      "extinction_values_equal_after_unit_conversion": true,
+      "albedo_and_scattering_coefficients_equal": true
+    },
+    {
+      "case": "ground",
+      "level": "high",
+      "phase_values_equal": true,
+      "angle_grid_equal": true,
+      "extinction_values_equal_after_unit_conversion": true,
+      "albedo_and_scattering_coefficients_equal": true
+    },
+    {
+      "case": "satellite",
+      "level": "input",
+      "phase_values_equal": true,
+      "angle_grid_equal": true,
+      "extinction_values_equal_after_unit_conversion": true,
+      "albedo_and_scattering_coefficients_equal": true
+    }
+  ],
+  "large_data_provenance": {
+    "ground": {
+      "source_project": "C:\\Users\\11\\Downloads\\GitHub-repository\\MultiScatterSim-dev",
+      "run_by": "user",
+      "performed_in_current_working_copy": true,
+      "evidence": "User screenshot: default run_model, N=2000000, three seeds; current CSV has 12 configuration/repeat groups and 720 rows.",
+      "configurations": 4,
+      "repeats_per_configuration": 3,
+      "photons_per_run": 2000000,
+      "result_sha256": "d986e6c57a981db51c854269a3f5dd1f31aa0a00b0a0b98366df8e43734fa2b0"
+    },
+    "satellite": {
+      "source_project": "C:\\Users\\11\\Downloads\\MultiScatterSim-master",
+      "performed_in_current_working_copy": false,
+      "configurations": 3,
+      "repeats_per_configuration": 3,
+      "photons_per_run": 2000000,
+      "result_sha256": "e8cf04e2bee326ffc4ed179c3e550ed8a22dda67ceb65ed3ca022b26a6593ba6"
+    }
+  },
+  "imported_mscart_results": "Previously computed MSCART outputs; not rerun in this port."
+}

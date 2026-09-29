@@ -1,0 +1,143 @@
+{
+  "passed": true,
+  "reference_comparison_enabled": false,
+  "gpu_controls": [
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale1_fov0.5",
+      "geometry": "native",
+      "layout": "legacy"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale1_fov2",
+      "geometry": "native",
+      "layout": "legacy"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale2_fov0.5",
+      "geometry": "native",
+      "layout": "legacy"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale2_fov2",
+      "geometry": "native",
+      "layout": "legacy"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale1_fov0.5",
+      "geometry": "mscart",
+      "layout": "legacy"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale1_fov2",
+      "geometry": "mscart",
+      "layout": "legacy"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale2_fov0.5",
+      "geometry": "mscart",
+      "layout": "legacy"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale2_fov2",
+      "geometry": "mscart",
+      "layout": "legacy"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale1_fov0.5",
+      "geometry": "native",
+      "layout": "packed"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale2_fov2",
+      "geometry": "native",
+      "layout": "packed"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale1_fov0.5",
+      "geometry": "mscart",
+      "layout": "packed"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "ground_scale2_fov2",
+      "geometry": "mscart",
+      "layout": "packed"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "satellite_fov0.001",
+      "geometry": "mscart",
+      "layout": "legacy"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "satellite_fov0.13",
+      "geometry": "mscart",
+      "layout": "legacy"
+    },
+    {
+      "photons": 4096,
+      "signal_relative_error": null,
+      "order_relative_error": null,
+      "case_name": "satellite_fov13",
+      "geometry": "mscart",
+      "layout": "legacy"
+    }
+  ],
+  "cpu_controls": [
+    {
+      "geometry": "native",
+      "photons": 200,
+      "signal_relative_error": null
+    },
+    {
+      "geometry": "mscart",
+      "photons": 200,
+      "signal_relative_error": null
+    }
+  ],
+  "proposal_weight_max_relative_error": 2.9907303027252623e-15,
+  "preserved_cpu_gpu_displays_passed": true,
+  "roulette_both_layouts_passed": true,
+  "model_root": "C:\\Users\\11\\Downloads\\GitHub-repository\\MultiScatterSim-dev",
+  "uploaded": false
+}

@@ -1,0 +1,33 @@
+CONTROL PASS FOV=0.5, signal=0, orders=0
+CONTROL PASS FOV=2, signal=0, orders=0
+CONTROL PASS FOV=0.5, signal=0, orders=0
+CONTROL PASS FOV=2, signal=0, orders=0
+CONTROL PASS FOV=0.5, signal=0, orders=0
+CONTROL PASS FOV=2, signal=0, orders=0
+CONTROL PASS FOV=0.5, signal=0, orders=0
+CONTROL PASS FOV=2, signal=0, orders=0
+CONTROL PASS FOV=0.5, signal=0, orders=0
+CONTROL PASS FOV=2, signal=0, orders=0
+CONTROL PASS FOV=0.5, signal=0, orders=0
+CONTROL PASS FOV=2, signal=0, orders=0
+CONTROL PASS FOV=0.001, signal=0, orders=0
+CONTROL PASS FOV=0.13, signal=0, orders=0
+CONTROL PASS FOV=13, signal=0, orders=0
+MODEL_PORT_PASS: 15 GPU controls, CPU, weight identity and display checks.
+START ground low / 0.5 mrad / seed 20260929 / N 4096
+DONE ground low / 0.5 mrad / seed 20260929: 0.876 s
+START ground low / 2 mrad / seed 20260929 / N 4096
+DONE ground low / 2 mrad / seed 20260929: 0.668 s
+START ground high / 0.5 mrad / seed 20260929 / N 4096
+DONE ground high / 0.5 mrad / seed 20260929: 1.023 s
+START ground high / 2 mrad / seed 20260929 / N 4096
+DONE ground high / 2 mrad / seed 20260929: 1.018 s
+Saved ground/model_results_new.csv
+START satellite / 0.001 mrad / seed 20260929 / N 4096
+DONE satellite / 0.001 mrad / seed 20260929: 1.734 s
+START satellite / 0.13 mrad / seed 20260929 / N 4096
+DONE satellite / 0.13 mrad / seed 20260929: 2.040 s
+START satellite / 13 mrad / seed 20260929 / N 4096
+DONE satellite / 13 mrad / seed 20260929: 2.680 s
+Saved satellite/model_results_new.csv
+REPO_CASE_ENTRY_PASS: large CSV files restored; small actual exports saved in local staging.

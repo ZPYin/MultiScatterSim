@@ -1,4 +1,4 @@
-﻿function [SVReturn, diag] = MSMCSim(lidarCfg, cloudCfg, varargin)
+function [SVReturn, diag] = MSMCSim(lidarCfg, cloudCfg, varargin)
 % MSMCSIM 基于蒙特卡洛方法的偏振激光雷达多次散射模拟
 %
 % 该函数追踪光子在云层中的传播、散射、偏振态演化和接收过程，
@@ -65,6 +65,13 @@ addParameter(p, 'useLocalAtten', false, @islogical); % 调试：使用本层局�
 addParameter(p, 'scatMatrixFile', '', @ischar);
 addParameter(p, 'angleSampler', 'fast', @ischar);    % fast|inverse
 addParameter(p, 'preparedOptics', [], @(x) isempty(x) || isstruct(x));
+addParameter(p,'forcedReceiverRotation','vectorbasis',@ischar);
+addParameter(p,'forcedReceiverPathMode','allangles',@ischar);
+addParameter(p,'propagationWeightNormalization','p11',@ischar);
+addParameter(p,'proposalBackwardMix',.2,@isnumeric);
+addParameter(p,'proposalTailDegrees',170,@isnumeric);
+addParameter(p,'geometryMode','native',@ischar);
+addParameter(p,'exactTimeWindowStop',false,@islogical);
 % 执行参数解析
 parse(p, lidarCfg, cloudCfg, varargin{:});
 
@@ -98,6 +105,18 @@ else
     diag.opticsSource = 'prepared';
 end
 
+weightMode=validatestring(lower(p.Results.propagationWeightNormalization),{'p11','legacy','samplingpdf'});
+receiverRotation=validatestring(lower(p.Results.forcedReceiverRotation),{'vectorbasis','legacy'});
+receiverPaths=validatestring(lower(p.Results.forcedReceiverPathMode),{'allangles','reciprocity'});
+geometryMode=validatestring(lower(p.Results.geometryMode),{'native','mscart'});
+if strcmp(weightMode,'p11')
+    optics=prepScaSamp(optics,p.Results.proposalBackwardMix,p.Results.proposalTailDegrees);
+end
+diag.propagationWeightNormalization=weightMode;
+diag.forcedReceiverRotation=receiverRotation;
+diag.forcedReceiverPathMode=receiverPaths;
+diag.geometryMode=geometryMode;
+diag.modelRevision='mscart_validated_20260929';
 cloudScatMatrix = optics.cloudScatMatrix;
 
 % 提取关键光学参数
@@ -128,12 +147,13 @@ cdfS12 = optics.cdfS12;
 
 clBoundX = 4.0 ./ muExt;
 clBoundY = 4.0 ./ muExt;
+if strcmp(geometryMode,'mscart'),clBoundX(:)=inf;clBoundY(:)=inf;end
 
 
 
 
 
-rCl = lidarCfg.rBeam * 1e-3 + lidarCfg.divBeam * 1e-3 / 2 * cloudCfg.clBase * 1e-3;   % 云底激光束半径 [m]
+rCl = lidarCfg.rBeam * 1e-3 + lidarCfg.divBeam * 1e-3 / 2 * cloudCfg.clBase;   % 云底激光束半径 [m]
 
 
 SVReturn = zeros(4, lidarCfg.nBins);   % 返回信号的Stokes向量 [4×nBins]
@@ -181,6 +201,9 @@ for iPhoton = 1:nPhotons
         len(iPhoton) = len(iPhoton) + ds;   % 累积传播距离
 
 
+        if p.Results.exactTimeWindowStop && len(iPhoton)>=3e8*lidarCfg.binWidth*1e-9*lidarCfg.nBins
+            isAlive=false;continue;
+        end
         if (isInMedium)
             % 光子仍在云层内，进行吸收判断
             if (rand(1, 1) > albedo(scaClLayer))
@@ -214,7 +237,9 @@ for iPhoton = 1:nPhotons
 
             % FOV条件：光子到望远镜光轴的距离 < FOV半径
 
-            if (sqrt((pPos(1) - lidarCfg.distBeamTel * 1e-3)^2 + pPos(2)^2) < ((lidarCfg.FOV * 1e-3 * pPos(3) + lidarCfg.rTel * 1e-3 * 2) / 2))
+            fovRadius=(lidarCfg.FOV*1e-3*pPos(3)+lidarCfg.rTel*1e-3*2)/2;
+            if strcmp(geometryMode,'mscart'),fovRadius=tan(lidarCfg.FOV*1e-3/2)*pPos(3);end
+            if sqrt((pPos(1)-lidarCfg.distBeamTel*1e-3)^2+pPos(2)^2)<fovRadius
                 
 
 
@@ -251,7 +276,7 @@ for iPhoton = 1:nPhotons
                     attenOD = opticalDepthCurrent;
                 end
 
-                if cloudScatMatrix.theta(iAng) < 90
+                if strcmp(receiverPaths,'reciprocity') && cloudScatMatrix.theta(iAng)<90
 
                     probEnter = 0;
                 else
@@ -265,6 +290,10 @@ for iPhoton = 1:nPhotons
 
                 % ========== 计算散射后的Stokes向量 ==========
                 % 第一步：根据散射几何旋转入射Stokes向量
+                receiverOutRotation=-rotAng2;
+                if strcmp(receiverRotation,'vectorbasis')
+                    [rotAng1,receiverOutRotation]=recRotAng(pDir.',pScaDir.',pDir.');
+                end
                 SVTemp1 = rotSVPhi(SVIn, rotAng1);
                 
                 % 第二步：应用Mueller散射矩阵进行偏振变换
@@ -278,13 +307,24 @@ for iPhoton = 1:nPhotons
 
 
                 timeBin = (len(iPhoton) + (pPos(3) - cloudCfg.clBase) / max(abs(pScaDir(3)), eps)) / 3e8 / (lidarCfg.binWidth * 1e-9);
+                if strcmp(geometryMode,'mscart')
+                    receiverDistance=norm(pPos-[lidarCfg.distBeamTel*1e-3;0;0]);
+                    timeBin=(len(iPhoton)+receiverDistance-cloudCfg.clBase)/3e8/(lidarCfg.binWidth*1e-9);
+                end
                 iBin = ceil(timeBin);
                 
                 % ========== 累积返回信号 ==========
                 if isfinite(iBin) && iBin >= 1 && iBin <= lidarCfg.nBins
 
 
-                    SV_final = rotSVPhi(rotSVPhi(SVTemp2, -rotAng2), atan2(pScaDir(2), pScaDir(1))) * probEnter* 2^(nScas(iPhoton) - 1);
+                    if strcmp(receiverRotation,'vectorbasis')
+                        receiverSV=rotSVPhi(SVTemp2,receiverOutRotation);
+                    else
+                        receiverSV=rotSVPhi(rotSVPhi(SVTemp2,-rotAng2),atan2(pScaDir(2),pScaDir(1)));
+                    end
+                    pathFactor=2^(nScas(iPhoton)-1);
+                    if strcmp(receiverPaths,'allangles'),pathFactor=.5;end
+                    SV_final=receiverSV*probEnter*pathFactor;
                     SVReturn(:, iBin) = SVReturn(:, iBin) + SV_final;
                     diag.SVReturnLayer(:, iBin, scaClLayer) = diag.SVReturnLayer(:, iBin, scaClLayer) + SV_final;
 
@@ -302,17 +342,21 @@ for iPhoton = 1:nPhotons
 
             end
 
-            % ========== 主光子包的随机散射 ==========
-            % 上述半解析步骤只累计从当前散射点指向接收机的条件贡献。
-            % 主光子包扣除该贡献权重后，仍按散射相函数抽样新的传播方向，
-            % 并继续后续随机传输。
+            % ========== 随机散射事件处理 ==========
 
-            % 随机采样相对方位角
+            
+            % ========== 随机采样散射角度 ==========
+
             rotAng1 = rand(1, 1) * 2 * pi;
+            
 
-            % 在该方位角对应的偏振加权相函数下抽样散射角
+
+
             qRot = SVIn(2) * cos(2 * rotAng1) + SVIn(3) * sin(2 * rotAng1);
-            if strcmp(angleSampler, 'inverse')
+            if strcmp(weightMode,'p11')
+                % Exact inverse CDF of the discrete scalar proposal in either sampler mode.
+                scaAng=sampleScatteringAngle(thetaGrid,cdfS11(scaClLayer,:),cdfS12(scaClLayer,:),SVIn(1),qRot)/180*pi;
+            elseif strcmp(angleSampler, 'inverse')
                 yPhase = S11(scaClLayer, :) * SVIn(1) + S12(scaClLayer, :) * qRot;
                 scaAng = inverseSampling(thetaGrid, ...
                     yPhase .* sin(thetaGrid * pi / 180), ...
@@ -345,6 +389,14 @@ for iPhoton = 1:nPhotons
                             SVTemp1 / S11(scaClLayer, iAng);
             
 
+            if strcmp(weightMode,'p11')
+                SVTemp2=SVTemp2*optics.proposalCorrection(scaClLayer,iAng);
+            elseif strcmp(weightMode,'samplingpdf')
+                density=S11(scaClLayer,iAng)*SVTemp1(1)+S12(scaClLayer,iAng)*SVTemp1(2);
+                total=SVTemp1(1)*cdfS11(scaClLayer,end)+SVTemp1(2)*cdfS12(scaClLayer,end);
+                denominator=max(density*cdfS11(scaClLayer,end)/max(total,eps),eps);
+                SVTemp2=SVTemp2*S11(scaClLayer,iAng)/denominator;
+            end
             % 用于将Stokes向量从散射平面旋转到新的传播方向参考系
             temp(1) = sqrt((1 - cos(scaAng)^2) * (1 - pScaDir(3)^2));
             if abs(temp(1)) < 1e-8
@@ -394,8 +446,8 @@ diag.layerScatterCount = layerScatterCount;
 
 % ========== 散射阶数分解的偏振诊断 ==========
 diag.maxOrderEstimate = maxOrderEstimate;
-I_by_order = squeeze(sum(diag.SVByOrder(1, :, :), 1))';  % [maxOrder x 1]
-Q_by_order = squeeze(sum(diag.SVByOrder(2, :, :), 1))';
+I_by_order = reshape(sum(diag.SVByOrder(1, :, :), 2), [], 1);  % [maxOrder x 1]
+Q_by_order = reshape(sum(diag.SVByOrder(2, :, :), 2), [], 1);
 diag.I_by_order = I_by_order;
 diag.Q_by_order = Q_by_order;
 diag.Pperp_by_order = (I_by_order - Q_by_order) / 2;

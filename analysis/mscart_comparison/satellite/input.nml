@@ -1,0 +1,24 @@
+&INFO
+   nsr = 3,
+   radiative_transfer_equation = 'VRTE',  ! vector radiative transfer equation
+   monte_carlo_algorithm = 'FMC',         ! forward Monte Carlo algorithm
+   variance_reduction = 'RS_GLORY',       ! variance reduction strategies
+   field_file="Lidar_Hu2001_OP.nc",       ! optical properties fields
+   rayleigh_depol_factor = 0.00,          ! Rayleigh depolarization factor
+   n_LD_pos = 1,                          ! number of lidar source (estimator) locations
+   n_LDRad_fov = 3,                       ! number of lidar receiver field-of-views
+   LDSrc_flx = 1.0, 1.0, 0.0, 0.0,        ! Stokes paramters of lidar source irradiance
+   LDSrc_the = 180.0,                     ! zenith angle of lidar source central propagation direction (unit: degree)
+   LDSrc_phi = 0.0,                       ! azimuth angle of lidar source central propagation direction (unit: degree)
+   LDSrc_name = 'POINT',                  ! pencil beams for lidar source
+   LDSrc_refw = 0.0,                      ! laser divergence (unit: radian)
+   LDSrc_pos = 2.5, 2.5, 705.0,           ! lidar source locations [x,y,z] (unit: km)
+   LDRad_pos = 2.5, 2.5, 705.0,           ! lidar receiver locations [X, Y, Z] (unit: km)
+   LDRad_the = 0.0,                       ! zenith angle of lidar receiver direction (unit: degree)
+   LDRad_phi = 0.0,                       ! azimuth angle of lidar receiver direction (unit: degree)
+   LDRad_fov = 0.001E-3, 0.13E-3, 13.0E-3,! lidar receiver field-of-views (unit: radian) 
+   LDRad_bin_range = 0.003,               ! lidar receiving range bin/resolution
+   LDRad_min_range = 704.7,               ! lidar minimum receiving range
+   LDRad_max_range = 705.0,               ! lidar maximum receiving range
+   LDRad_range_corrected = .true.         ! lidar range-corrected signal
+/
