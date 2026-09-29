@@ -1,4 +1,4 @@
-﻿# MUltiple Scattering Simulator (MUSS)
+# MUltiple Scattering Simulator (MUSS)
 
 MUSS 是一个基于 MATLAB 的云层多次散射模拟程序，主要用于模拟激光在水云中的传播、散射和偏振演化过程。程序结合 Mie 散射理论、云滴粒径谱和蒙特卡洛光子传输方法，可计算激光在云层内发生多次散射后被接收系统探测到的回波 Stokes 信号、回波强度和线偏振退偏比等结果。
 
@@ -107,9 +107,17 @@ lib/scattering-phase-function/water_droplet_scattering_gen.m
 
 该文档介绍了 `MSMCSim.m` 的主程序流程、云层散射矩阵计算、`clExt/sigma_e` 驱动模式、`N_d + R_eff` 云微物理参数驱动模式，以及输出回波信号和退偏比的计算方法。
 
+
+## MSCART 同输入验证与模型修复
+
+地基、星载案例位于 [analysis/mscart_comparison](analysis/mscart_comparison/README.md)。
+
 ## Developer Team
 
 | Name | Department | Email |
 |:--:|:--:|:--:|
 | Zhenping Yin | Wuhan University | zp.yin@whu.edu.cn |
 | Chenwei Luo | Hubei University | cw.luo@stu.hubu.edu.cn |
+
+
+

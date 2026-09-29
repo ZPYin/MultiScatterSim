@@ -69,6 +69,9 @@ if any(candidate)
     inside(rows) = abs(pOut(rows, 1)) <= bound & ...
         abs(pOut(rows, 2)) <= bound & ...
         pOut(rows, 3) >= base & pOut(rows, 3) <= top;
+    if isfield(G,'horizontallyHomogeneous') && G.horizontallyHomogeneous
+        inside(rows)=pOut(rows,3)>=base & pOut(rows,3)<=top;
+    end
 end
 
 end
@@ -127,5 +130,8 @@ bound = 4 ./ G.muExt(outLayer(rows));
 inside(rows) = abs(pOut(rows, 1)) <= bound & ...
     abs(pOut(rows, 2)) <= bound & ...
     pOut(rows, 3) >= G.cloudBase & pOut(rows, 3) <= G.cloudTop;
+if isfield(G,'horizontallyHomogeneous') && G.horizontallyHomogeneous
+    inside(rows)=pOut(rows,3)>=G.cloudBase & pOut(rows,3)<=G.cloudTop;
+end
 end
 

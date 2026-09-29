@@ -1,0 +1,134 @@
+{
+    "date":  "2026-09-29",
+    "target":  "C:\\Users\\11\\Downloads\\GitHub-repository\\MultiScatterSim-dev",
+    "files":  [
+                  {
+                      "file":  "lib/MC/MSMCSim.m",
+                      "action":  "modify",
+                      "before_sha256":  "cdb20622d47467177825b02d5d5c05a0f00be5839220d6c3f0a79eb9c4739d14",
+                      "after_sha256":  "387dc15b9e024a34c7b967f520bd8dae0edb6d653f23d717ccb0a82d3a197a7c"
+                  },
+                  {
+                      "file":  "lib/MC/receiverRotationsVectorBasis.m",
+                      "action":  "keep",
+                      "before_sha256":  "69f442caa8f820873cae1e6ba0313a3a9402d91e4c4631ac0fbe78e07dc3ac43",
+                      "after_sha256":  "69f442caa8f820873cae1e6ba0313a3a9402d91e4c4631ac0fbe78e07dc3ac43"
+                  },
+                  {
+                      "file":  "lib/MC_GPU/freeRunningGPU.m",
+                      "action":  "modify",
+                      "before_sha256":  "5d405f3ae7cb8954f3afbd3b61f3479413c31db75e287c4a709ce6d3f6ce8aeb",
+                      "after_sha256":  "0d0b87d233039c8b332b29bc1dec4ab44f9d23508776ba5ce9a314bf70125710"
+                  },
+                  {
+                      "file":  "lib/MC_GPU/MSMCSimGPUBackend.m",
+                      "action":  "modify",
+                      "before_sha256":  "bf729c09a51eb619a8f1de77fa916f67c44c5beb25c20649fd89e9af2ff15139",
+                      "after_sha256":  "2984c63cf97e8b20735c8b5e7bb90a12f7051b08d67ee4f1a2d42d8b7c95dae5"
+                  },
+                  {
+                      "file":  "lib/MC_GPU/simulateLayeredBatchGPU.m",
+                      "action":  "modify",
+                      "before_sha256":  "a345c9a3eccede9146700932a797808e0cf2821dc6c789e379521140dfdab0fd",
+                      "after_sha256":  "65ec1790fe495ac3a48bf0d44e326b8a485135f0970e79b85618fac938ea1dbd"
+                  },
+                  {
+                      "file":  "lib/MC_Optics/prepareMSMCScalarProposal.m",
+                      "action":  "keep",
+                      "before_sha256":  "b02a6d54681ceabef6e133114b2a5cd33ea9c0de03aa173bac30fac0ac55fd40",
+                      "after_sha256":  "b02a6d54681ceabef6e133114b2a5cd33ea9c0de03aa173bac30fac0ac55fd40"
+                  }
+              ],
+    "primary_fixes":  [
+                          "receiver vector basis",
+                          "P11 proposal and exact p/q weight",
+                          "all-angle receiver estimate"
+                      ],
+    "additional_fixes":  [
+                             "mrad-to-rad divergence conversion",
+                             "CPU order summary dimensions",
+                             "GPU roulette shape and empty survivors"
+                         ],
+    "existing_corrections_preserved":  [
+                                           "full circular launch",
+                                           "CPU optical module path"
+                                       ],
+    "local_before_backup":  "C:\\Users\\11\\Downloads\\MultiScatterSim - 涡旋光\\.codex_tmp\\mscart_repo_integration_20260929\\before",
+    "other_existing_changes_preserved":  true,
+    "validation_completed":  true,
+    "uploaded":  false,
+    "large_runs_repeated_in_this_copy":  false,
+    "entrypoint_default_root_fix":  {
+                                        "files":  [
+                                                      {
+                                                          "file":  "analysis/mscart_comparison/ground/run_model.m",
+                                                          "before_sha256":  "0e5dbcbf5cee0e9d4bd5c7016655f630119a122a25d70bb2ad8f1bba0c15133b",
+                                                          "after_sha256":  "f6dcb422099065b2a9e0dde4c5cae4c0d9feafa6003ea7dd8c84bb013d965e65"
+                                                      },
+                                                      {
+                                                          "file":  "analysis/mscart_comparison/satellite/run_model.m",
+                                                          "before_sha256":  "be1fb04fba8136807edd9a87cb58a3b9d2da05f790e176a1b1014519120d3c9d",
+                                                          "after_sha256":  "3cf6fb5e588f0dfcda0bf754c08498e6d671a405c7c30676b74936138a4f3b74"
+                                                      }
+                                                  ],
+                                        "backup_directory":  "C:\\Users\\11\\Downloads\\MultiScatterSim - 涡旋光\\.codex_tmp\\mscart_entrypoint_fix_20260929",
+                                        "validation_passed":  true
+                                    },
+    "compare_direct_run_fix":  {
+                                   "file":  "analysis/mscart_comparison/compare.py",
+                                   "before_sha256":  "7d78a263fb7f89f9d064d697acf24c81ae8a1a66ac0a171b257d68b741f0c5c1",
+                                   "after_sha256":  "33302eee2daf964762fbd5743c2772032e7a9e4d5f24d2bd260d5d2e22f23db9",
+                                   "backup":  "C:\\Users\\11\\Downloads\\MultiScatterSim - 涡旋光\\.codex_tmp\\mscart_compare_ui_fix_20260929\\compare_before.py",
+                                   "fixes":  [
+                                                 "prefer new model CSV by default",
+                                                 "report absolute output paths",
+                                                 "open PNG viewer on Windows",
+                                                 "support --no-show and working-directory-independent model paths"
+                                             ],
+                                   "validation_passed":  true,
+                                   "plot_math_unchanged":  true
+                               },
+    "single_csv_output":  {
+                              "enabled":  true,
+                              "file":  "model_results.csv",
+                              "current_latest_results_preserved":  true,
+                              "validation_passed":  true,
+                              "files":  [
+                                            "ground/run_model.m",
+                                            "satellite/run_model.m"
+                                        ],
+                              "result_sha256":  {
+                                                    "ground":  "d986e6c57a981db51c854269a3f5dd1f31aa0a00b0a0b98366df8e43734fa2b0",
+                                                    "satellite":  "e8cf04e2bee326ffc4ed179c3e550ed8a22dda67ceb65ed3ca022b26a6593ba6"
+                                                },
+                              "entry_sha256":  {
+                                                   "ground/run_model.m":  "8359e8ed33db953ca1c1b5845b1465b2b3fd9adf29fe7e42d16b072f009e376f",
+                                                   "satellite/run_model.m":  "d94f2a194cbbc90d5288bcfd9f7c4fee8c9a14b4da129dc6757e89f82dd9da41"
+                                               }
+                          },
+    "receiver_function_rename":  {
+                                     "old_name":  "receiverRotationsVectorBasis",
+                                     "new_name":  "recRotAng",
+                                     "filename_and_declaration_match":  true,
+                                     "cpu_and_gpu_references_updated":  true,
+                                     "code_equal_after_name_substitution":  true,
+                                     "current_sha256":  {
+                                                            "lib/MC_GPU/simulateLayeredBatchGPU.m":  "9ee45df72a1f062f023ca2e078d069d75f5b0ad82a8f46a2db1bbb12f0b1e926",
+                                                            "lib/MC/MSMCSim.m":  "d7ce3ba5cf939e161699546c4a69d601711306a9de81ee8124d6ef84b054d2b2",
+                                                            "lib/MC/recRotAng.m":  "4893da117e3b890aed4c31c62bfc4aed83d13d60bc45da96e2e65b4ddfdf0d0b"
+                                                        }
+                                 },
+    "sampling_prepare_function_rename":  {
+                                             "old_name":  "prepareMSMCScalarProposal",
+                                             "new_name":  "prepScaSamp",
+                                             "filename_and_declaration_match":  true,
+                                             "cpu_gpu_and_verification_references_updated":  true,
+                                             "code_equal_after_name_substitution":  true,
+                                             "current_sha256":  {
+                                                                    "lib/MC_GPU/MSMCSimGPUBackend.m":  "71512af17c21579b99b7c07ab3518e05f273f49438ec13916a6d47ed18f9b18e",
+                                                                    "tests/verify_mscart_cases.m":  "75e64f7819bf47c0536a763a4404983b700acc454e9dd9074640f352a90e4330",
+                                                                    "lib/MC/MSMCSim.m":  "332b27848f268d5fc61dca2e5257882c3cacbf56063c997dee7de9d440e5891d",
+                                                                    "lib/MC_Optics/prepScaSamp.m":  "7d150d1a80f6d8e08ef537eab90db1d3ffcc1d1cc1f0e8c95b15cf18fc343509"
+                                                                }
+                                         }
+}

@@ -19,6 +19,17 @@ function [SVReturn, diag] = MSMCSimGPUBackend(lidarCfg, cloudCfg, varargin)
 %   preparedOptics             output of prepareMSMCOptics
 %   diagnosticsLevel           'full' (default) or 'minimal'
 %   stateLayout                'legacy' (default) or 'packed'
+%   forcedReceiverRotation     'vectorbasis' (default), 'legacy', or 'donovan2015'
+%   forcedReceiverIncomingSign 'legacy' (default) or 'donovan2015'
+%                              (diagnostic sign audit for Eq. A3)
+%   forcedReceiverPathMode     'allangles' (default) or 'reciprocity'
+%   forcedReceiverAzimuth      'positive' (default), 'negative', or 'none'
+%   propagationRotation        'legacy' (default) or 'vectorbasis'
+%   propagationWeightNormalization  'p11' (default), 'legacy', 'samplingpdf'
+%   proposalBackwardMix        backward-tail proposal mixture (default .2)
+%   proposalTailDegrees        backward-tail start angle (default 170)
+%   geometryMode               'native' (default) or 'mscart'
+%   exactTimeWindowStop        stop after the last return gate (default false)
 
 tFunction = tic;
 
@@ -45,6 +56,16 @@ addParameter(p, 'fallbackToCPU', true, @islogical);
 addParameter(p, 'enableCUDAForwardCompatibility', true, @islogical);
 addParameter(p, 'diagnosticsLevel', 'full', @ischar);
 addParameter(p, 'stateLayout', 'legacy', @ischar);
+addParameter(p, 'forcedReceiverRotation', 'vectorbasis', @ischar);
+addParameter(p, 'forcedReceiverIncomingSign', 'legacy', @ischar);
+addParameter(p, 'forcedReceiverPathMode', 'allangles', @ischar);
+addParameter(p, 'forcedReceiverAzimuth', 'positive', @ischar);
+addParameter(p, 'propagationRotation', 'legacy', @ischar);
+addParameter(p, 'propagationWeightNormalization', 'p11', @ischar);
+addParameter(p, 'proposalBackwardMix', .2, @(x) isscalar(x) && x>=0 && x<1);
+addParameter(p, 'proposalTailDegrees', 170, @(x) isscalar(x) && x>=0 && x<=180);
+addParameter(p, 'geometryMode', 'native', @ischar);
+addParameter(p, 'exactTimeWindowStop', false, @islogical);
 parse(p, lidarCfg, cloudCfg, varargin{:});
 
 precision = validatestring(lower(p.Results.precision), {'single', 'double'});
@@ -53,6 +74,21 @@ diagnosticsLevelRequested = validatestring( ...
     lower(p.Results.diagnosticsLevel), {'full', 'minimal'});
 stateLayoutRequested = validatestring( ...
     lower(p.Results.stateLayout), {'legacy', 'packed'});
+forcedReceiverRotation = validatestring( ...
+    lower(p.Results.forcedReceiverRotation), ...
+    {'legacy', 'donovan2015', 'vectorbasis'});
+forcedReceiverIncomingSign = validatestring( ...
+    lower(p.Results.forcedReceiverIncomingSign), {'legacy', 'donovan2015'});
+forcedReceiverPathMode = validatestring( ...
+    lower(p.Results.forcedReceiverPathMode), {'reciprocity', 'allangles'});
+forcedReceiverAzimuth = validatestring( ...
+    lower(p.Results.forcedReceiverAzimuth), {'positive', 'negative', 'none'});
+propagationRotation = validatestring( ...
+    lower(p.Results.propagationRotation), {'legacy', 'vectorbasis'});
+propagationWeightNormalization = validatestring( ...
+    lower(p.Results.propagationWeightNormalization), ...
+    {'legacy', 'samplingpdf', 'p11'});
+geometryMode=validatestring(lower(p.Results.geometryMode),{'native','mscart'});
 stateLayout = stateLayoutRequested;
 diagnosticsLevel = diagnosticsLevelRequested;
 if strcmp(diagnosticsLevel, 'minimal') && strcmp(p.Results.visible, 'on')
@@ -100,6 +136,9 @@ else
     validatePreparedOptics(optics, lidarCfg, cloudCfg);
     opticsSource = 'prepared';
 end
+if strcmp(propagationWeightNormalization,'p11')
+    optics=prepScaSamp(optics,p.Results.proposalBackwardMix,p.Results.proposalTailDegrees);
+end
 prepareSeconds = toc(tPrepare);
 
 if numel(optics.muExt) ~= cloudCfg.nClLayers
@@ -123,6 +162,7 @@ G.cloudBase = gpuArray(cast(cloudCfg.clBase, precision));
 G.layerThickness = gpuArray(cast(cloudCfg.clDh, precision));
 G.cloudTop = gpuArray(cast( ...
     cloudCfg.clBase + cloudCfg.nClLayers * cloudCfg.clDh, precision));
+G.horizontallyHomogeneous=strcmp(geometryMode,'mscart');
 G.cumulativeTau = cumsum(G.muExt .* G.layerThickness);
 G.lowerTau = zeros(size(G.cumulativeTau), 'like', G.cumulativeTau);
 if G.nLayers > 1
@@ -151,6 +191,10 @@ batchContext = struct();
 batchContext.lidarCfg = lidarCfg;
 batchContext.cloudCfg = cloudCfg;
 batchContext.options = p.Results;
+batchContext.options.forcedReceiverRotation=forcedReceiverRotation;
+batchContext.options.forcedReceiverPathMode=forcedReceiverPathMode;
+batchContext.options.propagationWeightNormalization=propagationWeightNormalization;
+batchContext.options.geometryMode=geometryMode;
 batchContext.stateLayout = stateLayout;
 batchContext.collectFullDiagnostics = collectFullDiagnostics;
 batchContext.maxScatterOrder = maxScatterOrder;
@@ -220,6 +264,16 @@ diag.diagnosticsLevelRequested = diagnosticsLevelRequested;
 diag.diagnosticsLevel = diagnosticsLevel;
 diag.stateLayoutRequested = stateLayoutRequested;
 diag.stateLayout = stateLayout;
+diag.forcedReceiverRotation = forcedReceiverRotation;
+diag.forcedReceiverIncomingSign = forcedReceiverIncomingSign;
+diag.forcedReceiverPathMode = forcedReceiverPathMode;
+diag.forcedReceiverAzimuth = forcedReceiverAzimuth;
+diag.propagationRotation = propagationRotation;
+diag.propagationWeightNormalization = propagationWeightNormalization;
+diag.geometryMode=geometryMode;
+diag.proposalBackwardMix=p.Results.proposalBackwardMix;
+diag.proposalTailDegrees=p.Results.proposalTailDegrees;
+diag.modelRevision='mscart_validated_20260929';
 diag.muExt = optics.muExt;
 diag.muSca = optics.muSca;
 diag.albedo = optics.albedo;
@@ -344,7 +398,14 @@ end
             'energyThreshold', p.Results.energyThreshold, ...
             'useLocalAtten', p.Results.useLocalAtten, ...
             'scatMatrixFile', p.Results.scatMatrixFile, ...
-            'angleSampler', p.Results.angleSampler};
+            'angleSampler', p.Results.angleSampler, ...
+            'forcedReceiverRotation', p.Results.forcedReceiverRotation, ...
+            'forcedReceiverPathMode', p.Results.forcedReceiverPathMode, ...
+            'propagationWeightNormalization', p.Results.propagationWeightNormalization, ...
+            'proposalBackwardMix',p.Results.proposalBackwardMix, ...
+            'proposalTailDegrees',p.Results.proposalTailDegrees, ...
+            'geometryMode',p.Results.geometryMode, ...
+            'exactTimeWindowStop',p.Results.exactTimeWindowStop};
         if ~isempty(prepared)
             cpuArgs = [cpuArgs, {'preparedOptics', prepared}];
         end
@@ -364,6 +425,7 @@ G.S33 = toGPU(optics.S33);
 G.S34 = toGPU(optics.S34);
 G.cdfS11 = toGPU(optics.cdfS11);
 G.cdfS12 = toGPU(optics.cdfS12);
+if isfield(optics,'proposalCorrection'),G.proposalCorrection=toGPU(optics.proposalCorrection);end
 G.muExt = toGPU(optics.muExt(:));
 G.albedo = toGPU(optics.albedo(:));
 G.nLayers = numel(optics.muExt);

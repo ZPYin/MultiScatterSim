@@ -1,0 +1,253 @@
+{
+  "passed": true,
+  "model_root": "C:\\Users\\11\\Downloads\\GitHub-repository\\MultiScatterSim-dev",
+  "uploaded": false,
+  "small_entry_comparison": {
+    "ground": {
+      "rows": 240,
+      "values_checked": 2400,
+      "max_absolute_difference": 0.0,
+      "max_difference_relative_to_column_peak": 0.0,
+      "order4_absolute_roundoff_bound": "32 * float64 epsilon * total channel magnitude"
+    },
+    "satellite": {
+      "rows": 300,
+      "values_checked": 3000,
+      "max_absolute_difference": 0.0,
+      "max_difference_relative_to_column_peak": 0.0,
+      "order4_absolute_roundoff_bound": "32 * float64 epsilon * total channel magnitude"
+    }
+  },
+  "large_run_comparison": {
+    "ground": {
+      "rows": 720,
+      "values_checked": 7200,
+      "max_absolute_difference": 4.963083675318166e-24,
+      "max_difference_relative_to_column_peak": 4.07303473552352e-15,
+      "order4_absolute_roundoff_bound": "32 * float64 epsilon * total channel magnitude"
+    },
+    "satellite": {
+      "rows": 900,
+      "values_checked": 9000,
+      "max_absolute_difference": 5.204170427930421e-18,
+      "max_difference_relative_to_column_peak": 2.9952457934464275e-15,
+      "order4_absolute_roundoff_bound": "32 * float64 epsilon * total channel magnitude"
+    }
+  },
+  "retained_large_data_identical_to_validated_source": {
+    "ground": true,
+    "satellite": true
+  },
+  "large_run_provenance": {
+    "source_project": "C:\\Users\\11\\Downloads\\MultiScatterSim-master",
+    "source_report": "docs/mscart_model_fixes_20260929/results_verification.json",
+    "runs": 21,
+    "configurations": 7,
+    "repeats_per_configuration": 3,
+    "photons_per_run": 2000000,
+    "total_photons": 42000000,
+    "source_results_sha256": {
+      "ground": "d986e6c57a981db51c854269a3f5dd1f31aa0a00b0a0b98366df8e43734fa2b0",
+      "satellite": "e8cf04e2bee326ffc4ed179c3e550ed8a22dda67ceb65ed3ca022b26a6593ba6"
+    },
+    "performed_in_current_working_copy": false,
+    "validation_in_current_working_copy": "15 GPU controls, 2 CPU controls, roulette/display regression, and 7 actual case-entry runs at 4096 photons each."
+  },
+  "input_correspondence": [
+    {
+      "case": "ground",
+      "level": "low",
+      "phase_values_equal": true,
+      "angle_grid_equal": true,
+      "extinction_values_equal_after_unit_conversion": true,
+      "albedo_and_scattering_coefficients_equal": true
+    },
+    {
+      "case": "ground",
+      "level": "high",
+      "phase_values_equal": true,
+      "angle_grid_equal": true,
+      "extinction_values_equal_after_unit_conversion": true,
+      "albedo_and_scattering_coefficients_equal": true
+    },
+    {
+      "case": "satellite",
+      "level": "input",
+      "phase_values_equal": true,
+      "angle_grid_equal": true,
+      "extinction_values_equal_after_unit_conversion": true,
+      "albedo_and_scattering_coefficients_equal": true
+    }
+  ],
+  "input_file_identity": {
+    "ground/optics.mat": "89d509d5729204b28394608b6a528ebef124992067b9e683999d67471a5b1cdd",
+    "ground/low_input.nc": "ffb37077746cf16734abf8ad8de63b1d523feb423a69710718c81cb3dc9b3b9e",
+    "ground/high_input.nc": "afb6b67abc3f5353fcfd41319487a7ef1d9c0205aa86cd6d8f589ed9ede2450c",
+    "ground/run_model.m": "8359e8ed33db953ca1c1b5845b1465b2b3fd9adf29fe7e42d16b072f009e376f",
+    "satellite/optics.mat": "2c185a00a6c660ddb16ade189dae637d53f7d44b8a1db71f40c9268da73246ee",
+    "satellite/input.nc": "9c00d988e6d5011b1713c1d6d1e9478dde0bca4f144c5740785ae1ff81ad5bae",
+    "satellite/run_model.m": "d94f2a194cbbc90d5288bcfd9f7c4fee8c9a14b4da129dc6757e89f82dd9da41"
+  },
+  "transport_library_identity": [
+    {
+      "file": "lib/MC/freeRunning.m",
+      "source_text_equal": true,
+      "sha256": "81866445b0845de075093e5c385e75064a8debdf1604a546116f69e7c51ce3fb"
+    },
+    {
+      "file": "lib/MC/MSMCSim.m",
+      "source_text_equal": true,
+      "sha256": "387dc15b9e024a34c7b967f520bd8dae0edb6d653f23d717ccb0a82d3a197a7c"
+    },
+    {
+      "file": "lib/MC/receiverRotationsVectorBasis.m",
+      "source_text_equal": true,
+      "sha256": "69f442caa8f820873cae1e6ba0313a3a9402d91e4c4631ac0fbe78e07dc3ac43"
+    },
+    {
+      "file": "lib/MC/rotSVPhi.m",
+      "source_text_equal": true,
+      "sha256": "a6a69a3a69789d362b795abdce205cb1d6e29182cddf8d8efd7df16285189f0f"
+    },
+    {
+      "file": "lib/MC/scaRotAng.m",
+      "source_text_equal": true,
+      "sha256": "cc969886c87d5487f95031131a40131c6a7bb18e1653a6f60ad9567126019ea7"
+    },
+    {
+      "file": "lib/MC/updateDir.m",
+      "source_text_equal": true,
+      "sha256": "0104601828f09007921e96361bf16a94fc55efb40336a4dc4f258513f00ccf6e"
+    },
+    {
+      "file": "lib/MC_GPU/freeRunningGPU.m",
+      "source_text_equal": true,
+      "sha256": "0d0b87d233039c8b332b29bc1dec4ab44f9d23508776ba5ce9a314bf70125710"
+    },
+    {
+      "file": "lib/MC_GPU/MSMCSimGPU.m",
+      "source_text_equal": true,
+      "sha256": "cbb1be31950f96c9bd9e6b1b2e2ad2a9205e994fe449890c5b0205c241bf6802"
+    },
+    {
+      "file": "lib/MC_GPU/MSMCSimGPUBackend.m",
+      "source_text_equal": true,
+      "sha256": "2984c63cf97e8b20735c8b5e7bb90a12f7051b08d67ee4f1a2d42d8b7c95dae5"
+    },
+    {
+      "file": "lib/MC_GPU/rotSVPhiGPU.m",
+      "source_text_equal": true,
+      "sha256": "c2f7ea4ea8ba06533a89575634a0960fc61069b16ef1557276be898c297e636d"
+    },
+    {
+      "file": "lib/MC_GPU/sampleScatteringAngleGPU.m",
+      "source_text_equal": true,
+      "sha256": "83a665cbce03c196b29b14c91c8745f66d2fbfd824413cba78540e89d26242ce"
+    },
+    {
+      "file": "lib/MC_GPU/scaRotAngGPU.m",
+      "source_text_equal": true,
+      "sha256": "dc770b09f7ddc67fe5319c43fde7e04fcd86c62bafbceb2d96cd4fb6645dee1b"
+    },
+    {
+      "file": "lib/MC_GPU/simulateLayeredBatchGPU.m",
+      "source_text_equal": true,
+      "sha256": "65ec1790fe495ac3a48bf0d44e326b8a485135f0970e79b85618fac938ea1dbd"
+    },
+    {
+      "file": "lib/MC_GPU/updateDirGPU.m",
+      "source_text_equal": true,
+      "sha256": "9197b223b3102854e3f33f64d8aa3f3588693e805b8c84e68f2197ad7e7d8e1c"
+    },
+    {
+      "file": "lib/MC_Optics/prepareMSMCOptics.m",
+      "source_text_equal": true,
+      "sha256": "49af6da843158e45fcb9b5a9b197702341376205386b7e7f50e3ae4e81d2d0fb"
+    },
+    {
+      "file": "lib/MC_Optics/prepareMSMCOpticsCached.m",
+      "source_text_equal": true,
+      "sha256": "b64c05f7bb0970006461976d3a13703c411f845e7a6cac520b7ef524cacff896"
+    },
+    {
+      "file": "lib/MC_Optics/prepareMSMCScalarProposal.m",
+      "source_text_equal": true,
+      "sha256": "b02a6d54681ceabef6e133114b2a5cd33ea9c0de03aa173bac30fac0ac55fd40"
+    }
+  ],
+  "current_case_entry_runs": 7,
+  "current_case_entry_photons_per_run": 4096,
+  "current_case_entry_total_photons": 28672,
+  "large_runs_repeated_in_this_copy": false,
+  "imported_mscart_results": "Previously computed MSCART outputs; not rerun in this integration.",
+  "entrypoint_default_root_fix": {
+    "passed": true,
+    "reason": "Missing modelRoot default prevented direct no-argument execution.",
+    "project_root_inferred_from_entry_file": true,
+    "case_entry_photons_per_configuration": 4096,
+    "case_configurations": 7,
+    "output_matches_previous_entry": true,
+    "comparisons": {
+      "ground": {
+        "rows": 240,
+        "values_checked": 2400,
+        "max_absolute_difference": 0.0,
+        "max_difference_relative_to_column_peak": 0.0,
+        "order4_absolute_roundoff_bound": "32 * float64 epsilon * total channel magnitude"
+      },
+      "satellite": {
+        "rows": 300,
+        "values_checked": 3000,
+        "max_absolute_difference": 0.0,
+        "max_difference_relative_to_column_peak": 0.0,
+        "order4_absolute_roundoff_bound": "32 * float64 epsilon * total channel magnitude"
+      }
+    },
+    "retained_large_csv_files_preserved": true,
+    "files": [
+      {
+        "file": "analysis/mscart_comparison/ground/run_model.m",
+        "before_sha256": "0e5dbcbf5cee0e9d4bd5c7016655f630119a122a25d70bb2ad8f1bba0c15133b",
+        "after_sha256": "f6dcb422099065b2a9e0dde4c5cae4c0d9feafa6003ea7dd8c84bb013d965e65"
+      },
+      {
+        "file": "analysis/mscart_comparison/satellite/run_model.m",
+        "before_sha256": "be1fb04fba8136807edd9a87cb58a3b9d2da05f790e176a1b1014519120d3c9d",
+        "after_sha256": "3cf6fb5e588f0dfcda0bf754c08498e6d671a405c7c30676b74936138a4f3b74"
+      }
+    ],
+    "uploaded": false
+  },
+  "single_csv_output": {
+    "passed": true,
+    "configurations": 7,
+    "comparisons": {
+      "ground": {
+        "rows": 240,
+        "values_checked": 2400,
+        "max_absolute_difference": 0.0,
+        "max_difference_relative_to_column_peak": 0.0,
+        "order4_absolute_roundoff_bound": "32 * float64 epsilon * total channel magnitude"
+      },
+      "satellite": {
+        "rows": 300,
+        "values_checked": 3000,
+        "max_absolute_difference": 0.0,
+        "max_difference_relative_to_column_peak": 0.0,
+        "order4_absolute_roundoff_bound": "32 * float64 epsilon * total channel magnitude"
+      }
+    },
+    "result_filename": "model_results.csv",
+    "latest_result_bytes_preserved": true,
+    "duplicate_result_files_removed": true,
+    "plots_regenerated": true,
+    "result_sha256": {
+      "ground": "d986e6c57a981db51c854269a3f5dd1f31aa0a00b0a0b98366df8e43734fa2b0",
+      "satellite": "e8cf04e2bee326ffc4ed179c3e550ed8a22dda67ceb65ed3ca022b26a6593ba6"
+    },
+    "entry_sha256": {
+      "ground/run_model.m": "8359e8ed33db953ca1c1b5845b1465b2b3fd9adf29fe7e42d16b072f009e376f",
+      "satellite/run_model.m": "d94f2a194cbbc90d5288bcfd9f7c4fee8c9a14b4da129dc6757e89f82dd9da41"
+    }
+  }
+}
