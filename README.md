@@ -110,7 +110,7 @@ lib/scattering-phase-function/water_droplet_scattering_gen.m
 
 ## MSCART 同输入验证与模型修复
 
-接收偏振与抽样权重修复已合入正式 CPU/GPU 模型。地基、星载案例位于 [analysis/mscart_comparison](analysis/mscart_comparison/README.md)。
+地基、星载案例位于 [analysis/mscart_comparison](analysis/mscart_comparison/README.md)。
 
 ## Developer Team
 
