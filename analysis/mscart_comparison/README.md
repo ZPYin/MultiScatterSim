@@ -1,32 +1,37 @@
-# MSCART 同输入模型比对
+# MUSS–MSCART Simulation Comparison
 
-本资料包用于 `GitHub-repository/MultiScatterSim-dev` 的正式 CPU/GPU 模型验证。
+This directory compares MUSS simulation results with reference data generated using the third-party MSCART model for ground-based and spaceborne lidar cases. The comparison covers parallel and perpendicular polarization signals, linear depolarization ratios for individual range bins, and cumulative linear depolarization ratios.
 
+MSCART is a third-party model. Its source code and executables are not distributed with this repository. The MSCART results provided here serve as reference data for evaluating MUSS under the corresponding case configurations.
 
+This directory contains saved comparison data, a plotting script, dependency requirements, and data provenance records.
 
-两个案例目录：
+The two cases are organized as follows:
 
-| 目录 | 保留内容 |
+| Directory | Comparison data |
 | --- | --- |
-| [ground](ground/) | 地基案例：低、高消光各一套输入和结果，包含0.5、2.0 mrad全视场 |
-| [satellite](satellite/) | Hu2001星载案例：一套输入和结果，包含0.001、0.13、13 mrad全视场 |
+| [ground](ground/) | MUSS results and MSCART reference data for ground-based lidar under low and high extinction conditions, with full fields of view of 0.5 and 2.0 mrad. |
+| [satellite](satellite/) | MUSS results and MSCART reference data for the Hu2001 spaceborne lidar case, with full fields of view of 0.001, 0.13, and 13 mrad. |
 
-先看 [地基对比图](ground/comparison.png)、[星载对比图](satellite/comparison.png)，以及各目录的 `summary.csv`。PDF用于打印；`comparison.csv` 是图对应的平均双通道、逐箱和累计退偏比数据。
+See the [ground-based comparison](ground/comparison.png), the [spaceborne comparison](satellite/comparison.png), and `summary.csv` in each case directory. PDF versions are available for printing. Each `comparison.csv` contains the mean signals in both polarization channels, the depolarization ratio for each range bin, and the cumulative depolarization ratio used in the figures.
 
+## Signal Definitions and Comparison Settings
 
-## 计算定义
+The linear polarization channels are defined as `I∥=(I+Q)/2` and `I⊥=(I−Q)/2`, with the linear depolarization ratio `δ=I⊥/I∥`. Each channel is averaged across independent repeats before accumulation and ratio calculation. Shaded bands show the range across independent repeats.
 
-线偏振通道：`I∥=(I+Q)/2`、`I⊥=(I−Q)/2`，`δ=I⊥/I∥`。先平均通道，再累加取比；阴影为独立重复范围。
+- **Ground-based case:** 355 nm wavelength and 5 m range bins. Summary statistics use raw signals over cloud penetration depths of 20–120 m. MSCART outputs per km² are divided by 10⁶ to convert them to outputs per m². The figures show cumulative results up to 150 m.
+- **Spaceborne case:** 532 nm wavelength and 3 m range bins. Summary statistics use range-corrected signals over cloud penetration depths of 0–150 m and 0–300 m. The figures show cumulative results up to 300 m.
+- **Photon counts:** Each MUSS repeat uses 2 million photons. Each MSCART repeat uses 2 million photons for the ground-based case and 10 million photons for the spaceborne case. Contributions from scattering orders 4 and higher are obtained by subtracting the first three orders from the total signal.
 
-- 地基：355 nm，5 m分箱；主表统计云内20–120 m原始信号。MSCART每km²输出除以10⁶换为每m²。图显示累计到150 m。
-- 星载：532 nm，3 m分箱；主表统计云内0–150、0–300 m距离校正信号。图显示累计到300 m。
-- 每次本模型运行200万光子；地基MSCART每次200万，星载每次1000万。4+阶为总信号减前三阶。
+## Plot Comparisons from Saved Data
 
-## 重绘
+Both the MUSS simulation results and the MSCART reference data are included. The plotting script reads these saved data directly to generate comparison figures.
 
-在 PyCharm 中打开本目录的 `compare.py`，右键选择“运行”，或执行 `python compare.py`。默认绘制地基、星载两个案例，读取各自的 `model_results.csv`。控制台会打印读取的 CSV 和图片保存位置；在 Windows 上完成后自动打开 PNG 图片。
+In PyCharm, open `compare.py` in this directory, right-click, and select **Run**. Alternatively, execute `python compare.py` from this directory. By default, the script reads `model_results.csv` and the MSCART reference result files for both cases and generates the ground-based and spaceborne comparison figures. It prints the input CSV paths and output figure paths to the console. On Windows, the PNG images open automatically after plotting.
 
-使用 `--case ground` 或 `--case satellite` 可只画一个案例。添加 `--no-show` 可只保存文件。
+Use `--case ground` or `--case satellite` to plot a single case. Add `--no-show` to save the output files without opening the images.
+
+Run the following commands from this directory:
 
 ```bash
 python -m pip install -r requirements.txt
@@ -34,41 +39,10 @@ python compare.py --case ground
 python compare.py --case satellite
 ```
 
-只使用包内数据。
+Plotting requires only Python and the dependencies listed in `requirements.txt`. MATLAB and MSCART are not required.
 
-## 重跑本模型
+## Reference Data Sources
 
-在MATLAB中进入 `ground` 或 `satellite` 目录，打开该目录的 `run_model.m` 后直接点击“运行”，或在命令窗口执行：
+The MSCART reference results are stored in `ground/low_result.nc` and `ground/high_result.nc` for the ground-based case, and in `satellite/result.nc` for the spaceborne case. These files contain results generated using MSCART for comparison with MUSS simulation results.
 
-```matlab
-run_model
-```
-
-入口会根据自身文件位置自动定位本项目根目录。默认每次200万光子、3个随机种子；地基计算低/高消光各两种视场，星载计算三种视场。
-
-也可手动指定参数；第一个参数为 `[]` 时仍自动定位项目根目录：
-
-```matlab
-run_model([],2000000,[20260929,20260930,20261001]);
-```
-
-显式传入 `run_model(modelRoot,nPhoton,seeds)` 的原用法继续支持。
-
-每次运行直接覆盖该目录的 `model_results.csv`，只保留当前结果。从资料包根目录重绘：
-
-```bash
-python compare.py --case ground
-python compare.py --case satellite
-```
-
-## 重跑MSCART
-
-```bash
-bash run_mscart.sh /absolute/path/to/MSCART ground_low /absolute/path/to/new_low_run
-bash run_mscart.sh /absolute/path/to/MSCART ground_high /absolute/path/to/new_high_run
-bash run_mscart.sh /absolute/path/to/MSCART satellite /absolute/path/to/new_satellite_run
-```
-
-`source_info.json` 记录数据来源、SHA256和整理核对结果。
-
-
+`source_info.json` records the reference data sources, SHA256 checksums, and data verification details.

@@ -1,4 +1,4 @@
-"""Compare the two delivered cases from saved data or freshly run model CSVs."""
+"""Plot MUSS-MSCART comparisons from the saved ground and satellite data."""
 from pathlib import Path
 import argparse
 import csv
@@ -164,7 +164,7 @@ def open_generated_image(image_file):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--case',choices=['ground','satellite','all'],default='all')
-    p.add_argument('--model-file',type=Path,help='CSV from run_model.m; use with a single --case.')
+    p.add_argument('--model-file',type=Path,help='Path to a saved MUSS result CSV; use with a single --case.')
     p.add_argument('--no-show',action='store_true',help='Save output files without opening the image viewer.')
     args=p.parse_args()
     if args.model_file and args.case=='all': p.error('--model-file requires --case ground or satellite')

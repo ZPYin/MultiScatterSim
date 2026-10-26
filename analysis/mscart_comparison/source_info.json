@@ -56,7 +56,7 @@
     "original_mscart_stokes_preserved": true
   },
   "model_entry_test_photons_per_configuration": 4096,
-  "model_code_location": "Current projectRoot/lib; both run_model.m entries call the formal repaired model.",
+  "model_code_location": "MUSS source code is maintained in the project lib directory; this comparison package provides saved results and plotting only.",
   "current_model_project": "GitHub-repository/MultiScatterSim-dev",
   "current_model_photons_per_run": 4096,
   "current_model_repeats_per_configuration": 1,
@@ -125,7 +125,7 @@
     "single_model_results_csv": true
   },
   "single_result_csv_per_case": true,
-  "result_overwrite_policy": "run_model overwrites model_results.csv; compare.py reads the same file.",
+  "result_overwrite_policy": "compare.py reads saved result data and writes only comparison plots and tables.",
   "single_csv_output_verification": {
     "passed": true,
     "result_sha256": {
@@ -137,32 +137,22 @@
     "values_changed": 0
   },
   "file_sha256": {
-    "compare.py": "fcffbe9041b68b447c63ed17bd6a9d0840a2e0c83f60dbac19806506d3bd39a0",
+    "compare.py": "7b5616a559d2d82dea590ba6592c98fad6d1ccf3d482960dcab334e9a4e3b822",
     "ground/comparison.csv": "5966c2486a864884b255deb35caaf022d3ee76f0d828bfa43c28f0f668d0015e",
-    "ground/comparison.pdf": "ff196bca4b60cbcef4575ef28df86caa7b5fd16fe4f5a54a8eb3794e1eea5413",
-    "ground/comparison.png": "4a64537fe8ed3fbe41ca8299f3c94c82cee8292a8c9eada98231e38436d69773",
-    "ground/high_input.nc": "afb6b67abc3f5353fcfd41319487a7ef1d9c0205aa86cd6d8f589ed9ede2450c",
-    "ground/high_input.nml": "13b2657a1b5fad15398215e52578b730dde89777bde622e166114de42387ff50",
+    "ground/comparison.pdf": "ba2729732f06d8468e57c5d79e7d2ad761cc5c5aa4d19a1111c85d2bebb256a8",
+    "ground/comparison.png": "1659737f3f8464d3c22156130ffc0049bb94e8fa04593875fa6828eef725d15b",
     "ground/high_result.nc": "b1404186bb9a151c46543c36e4d010278ef567a5cf3a73672a5e7a18a3a15b4f",
-    "ground/low_input.nc": "ffb37077746cf16734abf8ad8de63b1d523feb423a69710718c81cb3dc9b3b9e",
-    "ground/low_input.nml": "13b2657a1b5fad15398215e52578b730dde89777bde622e166114de42387ff50",
     "ground/low_result.nc": "8c47324bb302bb360817501f51fd556884fd8fc895a613a6fb8237c5326075f3",
     "ground/model_results.csv": "d986e6c57a981db51c854269a3f5dd1f31aa0a00b0a0b98366df8e43734fa2b0",
-    "ground/optics.mat": "89d509d5729204b28394608b6a528ebef124992067b9e683999d67471a5b1cdd",
-    "ground/run_model.m": "8359e8ed33db953ca1c1b5845b1465b2b3fd9adf29fe7e42d16b072f009e376f",
     "ground/summary.csv": "c1e109852c5429990be414df0f14e817c6ea66f20ea1b4fbbff9e73512829a7c",
-    "README.md": "4b48a5e15ea92c501764624b0236d3cbc2bc3f29210a50dde5993134416691b9",
+    "README.md": "be99d234c66af0e1a8e47710c730d44f398276549907863a885ccb24813a3e31",
     "requirements.txt": "f098fc889b00d96f463cc9f9952b016114501f283334de9d041db5f61cd8374b",
-    "run_mscart.sh": "65390821f6f9f1c3a528c064d4cf58ac109fc31744a5cb5dcfb13b8566d82a76",
     "satellite/comparison.csv": "16c0ab740fb572cb0c5cde91fc6db7836298f7649d34bfa7a7f0a1c99d27fa8f",
-    "satellite/comparison.pdf": "f78aae3a1d8483c4de8f6b4d94c69dbc0660deba76aaf017371eb4e554843a97",
-    "satellite/comparison.png": "140a4b9601f6213aa0b303d903b5d2350ee4b46a6be7a36925a9c984a2774e7c",
-    "satellite/input.nc": "9c00d988e6d5011b1713c1d6d1e9478dde0bca4f144c5740785ae1ff81ad5bae",
-    "satellite/input.nml": "6dcd7db6bfcb3e92d57d1b34f051724c9bada5232b4c6e7541fcbe0484b18fc8",
+    "satellite/comparison.pdf": "a99bcfcf5a5a64463dad3c74eda0908d9b22f458aaadaa50dc4af7750a19ff3e",
+    "satellite/comparison.png": "746ccb934e2862dea4c856e18175c6564bb3a7ae980c1e35bfd8e8cf75d8a599",
     "satellite/model_results.csv": "e8cf04e2bee326ffc4ed179c3e550ed8a22dda67ceb65ed3ca022b26a6593ba6",
-    "satellite/optics.mat": "2c185a00a6c660ddb16ade189dae637d53f7d44b8a1db71f40c9268da73246ee",
     "satellite/result.nc": "a4928a3ff3cc6c036bdcb2aa2b90f3c450fd14580be822f354818feec187346e",
-    "satellite/run_model.m": "d94f2a194cbbc90d5288bcfd9f7c4fee8c9a14b4da129dc6757e89f82dd9da41",
     "satellite/summary.csv": "da65ad2ed102bacadab38b22b28d87852ba78ecbe203129ebe4954fe299cfc7a"
-  }
+  },
+  "package_contents": "Saved MUSS and MSCART result data, comparison plots and tables, plotting script, dependencies, and documentation."
 }
