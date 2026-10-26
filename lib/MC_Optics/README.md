@@ -1,70 +1,63 @@
-# MSMC optical preprocessing
+# MSMC Optical Preprocessing
 
-本目录保存 CPU 与 GPU 半解析偏振蒙特卡洛模型共同使用的云光学预处理。
-它位于光子传输之前，把云微物理参数和 Mie 散射数据库转换为两个计算后端
-可以直接使用的只读 `optics` 结构体。
+This directory contains the cloud optical preprocessing shared by the CPU and GPU semi-analytical polarized Monte Carlo models. Before photon transport, it converts cloud microphysical parameters and a Mie scattering database into a read-only `optics` structure that both backends can use directly.
 
-## 模块边界
+## Module Scope
 
 ```text
-Mie 散射数据库
+Mie scattering database
 + lidarCfg.lambda
-+ cloudCfg.clReff、N_d、kappa
++ cloudCfg.clReff, N_d, kappa
           │
           ▼
 prepareMSMCOptics
           │
-          ├──► MSMCSim       （CPU 光子传输）
-          └──► MSMCSimGPU    （GPU 光子传输）
+          ├──► MSMCSim       (CPU photon transport)
+          └──► MSMCSimGPU    (GPU photon transport)
 ```
 
-本模块不执行光子自由传播、多次散射循环、Stokes 参考平面旋转、回波距离门
-累加或微物理参数反演。
+This module does not perform photon free propagation, multiple scattering loops, Stokes reference-plane rotations, return-signal accumulation by range bin, or microphysical parameter retrieval.
 
-仓库自带用于最小运行示例的散射数据库，默认文件为
-`data/water_cloud_scattering_phase_function_example.mat`；正式计算也可以通过
-`scatMatrixFile` 显式指定其他兼容的高分辨率数据库。
+The repository includes a scattering database for the minimal examples. The default file is `data/water_cloud_scattering_phase_function_example.mat`. Other compatible high-resolution databases can be specified explicitly using `scatMatrixFile`.
 
-## 文件说明
+## Files
 
 ### `prepareMSMCOptics.m`
 
-调用 `cloudScatteringMatrix` 对给定波长和液滴谱进行体积平均，生成：
+Calls `cloudScatteringMatrix` to calculate bulk optical properties for the specified wavelength and droplet size distribution, producing:
 
-- 分层消光系数 `muExt`；
-- 分层散射系数 `muSca`；
-- 单次散射反照率 `albedo`；
-- Mueller 矩阵元素 `S11`、`S12`、`S33`、`S34`；
-- 散射角网格 `theta`；
-- 散射角抽样使用的 `cdfS11` 和 `cdfS12`。
+- Layer-specific extinction coefficients `muExt`;
+- Layer-specific scattering coefficients `muSca`;
+- Single-scattering albedo `albedo`;
+- Mueller matrix elements `S11`, `S12`, `S33`, and `S34`;
+- Scattering-angle grid `theta`;
+- `cdfS11` and `cdfS12` for scattering-angle sampling.
 
 ### `prepareMSMCOpticsCached.m`
 
-为批量正演和重复模拟提供内存/磁盘缓存。固定波长、`Reff/kappa` 廓线和
-归一化 `N_d(z)` 形状时，绝对 `N_d` 幅度只线性改变 `muExt` 与
-`muSca`；Mueller 矩阵和归一化散射角分布可以复用。
+Provides memory and disk caching for batch forward simulations and repeated runs. For a fixed wavelength, `Reff/kappa` profiles, and normalized `N_d(z)` profile shape, changing the absolute `N_d` scale changes only `muExt` and `muSca` linearly. The Mueller matrices and normalized scattering-angle distributions can be reused.
 
-该函数主要用于：
+Typical uses include:
 
-- 大规模 `Reff-N_d` 参数扫描；
-- 不同随机种子的重复蒙特卡洛模拟；
-- 多个云底高度使用相同云内微物理廓线的批处理。
+- Large `Reff-N_d` parameter sweeps;
+- Repeated Monte Carlo simulations with different random seeds;
+- Batch calculations at multiple cloud base heights using the same in-cloud microphysical profiles.
 
-## 使用方式
+## Usage
 
-推荐通过项目初始化脚本加载全部共享依赖：
+Use the project setup script to load all shared dependencies:
 
 ```matlab
 setupMSToolbox
 ```
 
-也可以递归加入完整的 `lib`：
+Alternatively, recursively add the entire `lib` directory:
 
 ```matlab
 addpath(genpath(fullfile(projectRoot, 'lib')));
 ```
 
-普通调用：
+Standard calls:
 
 ```matlab
 optics = prepareMSMCOptics(lidarCfg, cloudCfg, ...
@@ -76,7 +69,7 @@ optics = prepareMSMCOptics(lidarCfg, cloudCfg, ...
     'preparedOptics', optics);
 ```
 
-缓存调用：
+Cached call:
 
 ```matlab
 [optics, cacheInfo] = prepareMSMCOpticsCached( ...
@@ -84,5 +77,4 @@ optics = prepareMSMCOptics(lidarCfg, cloudCfg, ...
     'scatMatrixFile', scatteringDatabase);
 ```
 
-CPU 和 GPU 必须共享同一份光学定义，不能在两个后端中分别维护消光系数、
-Mueller 矩阵或散射角 CDF 的计算公式。
+The CPU and GPU backends must share the same optical definitions. Calculations of extinction coefficients, Mueller matrices, and scattering-angle CDFs must not be maintained separately in the two backends.

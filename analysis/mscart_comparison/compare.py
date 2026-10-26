@@ -1,4 +1,4 @@
-"""Compare the two delivered cases from saved data or freshly run model CSVs."""
+"""Plot MUSS-MSCART comparisons from the saved ground and satellite data."""
 from pathlib import Path
 import argparse
 import csv
@@ -9,9 +9,8 @@ from scipy.io import netcdf_file
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.font_manager import FontProperties, fontManager
 from matplotlib.lines import Line2D
-from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import MaxNLocator, ScalarFormatter
 
 ROOT = Path(__file__).resolve().parent
 
@@ -65,13 +64,13 @@ class SingleOriginZero(ScalarFormatter):
 
 
 def style():
-    font = Path('C:/Windows/Fonts/msyh.ttc')
-    if font.exists(): fontManager.addfont(str(font))
-    family = FontProperties(fname=str(font)).get_name() if font.exists() else ['Noto Sans CJK SC','WenQuanYi Zen Hei','DejaVu Sans']
-    plt.rcParams.update({'font.family': family, 'font.size': 9, 'axes.labelsize': 9,
+    plt.rcParams.update({'font.family': 'sans-serif',
+        'font.sans-serif': ['Arial', 'Helvetica', 'DejaVu Sans'],
+        'font.size': 9, 'axes.labelsize': 9,
         'axes.titlesize': 9, 'legend.fontsize': 9, 'xtick.labelsize': 9, 'ytick.labelsize': 9,
         'axes.linewidth': .65, 'xtick.major.size': 2.5, 'ytick.major.size': 2.5,
-        'mathtext.fontset': 'dejavusans', 'pdf.fonttype': 42, 'axes.unicode_minus': False})
+        'mathtext.fontset': 'dejavusans', 'pdf.fonttype': 42,
+        'svg.fonttype': 'none', 'axes.unicode_minus': False})
 
 
 def divide(n, d):
@@ -91,12 +90,12 @@ def compare_case(case, model_file=None):
     style()
     fig, axes = plt.subplots(2 if ground else 1, 2 if ground else 3,
                              figsize=(14/2.54, (12.4 if ground else 7.5)/2.54), squeeze=False)
-    fig.subplots_adjust(left=.16 if ground else .13, right=.965, bottom=.165 if ground else .26,
-                        top=.79 if ground else .70, wspace=.38, hspace=.80)
-    fig.suptitle('本模型与 MSCART：'+('地基案例' if ground else '星载案例'), fontsize=10, y=.98)
+    fig.subplots_adjust(left=.16 if ground else .13, right=.965, bottom=.23 if ground else .35,
+                        top=.79 if ground else .70, wspace=.55 if ground else .38, hspace=.90)
+    fig.suptitle('MUSS and MSCART: '+('Ground-based lidar' if ground else 'Spaceborne lidar'), fontsize=10, y=.98)
     handles = [Line2D([], [], color='#0072B2', lw=1.25),
                Line2D([], [], color='#222222', lw=.95, ls='--', marker='o', ms=3, mfc='white')]
-    fig.legend(handles, ['本模型', 'MSCART'], loc='upper center', bbox_to_anchor=(.54,.925),
+    fig.legend(handles, ['MUSS', 'MSCART'], loc='upper center', bbox_to_anchor=(.54,.925),
                ncol=2, frameon=False, handlelength=2.1, columnspacing=2.4)
     rows, summaries = [], []
     for panel, (level, fov) in enumerate(configs):
@@ -124,26 +123,31 @@ def compare_case(case, model_file=None):
             summaries.append(dict(extinction=level,fov_full_mrad=fov,start_m=start,end_m=end,
                 model_delta=float(dm),mscart_delta=float(dr),relative_difference_percent=float(100*(dm/dr-1)),
                 parallel_difference_percent=float(100*(m[0]/r[0]-1)),perpendicular_difference_percent=float(100*(m[1]/r[1]-1))))
-        ax.set_title(('低消光' if level=='low' else '高消光' if level=='high' else '全视场')+f' / {fov:g} mrad',pad=6)
+        ax.set_title(('Low extinction' if level=='low' else 'High extinction' if level=='high' else 'Full FOV')+f' / {fov:g} mrad',pad=6)
         ax.set_xlim(0,150 if ground else 300)
         ax.set_xticks([0,50,100,150] if ground else [0,100,200,300])
         ax.set_ylim(bottom=0)
-        ax.set_xlabel('云内积分距离 (m)')
-        if ground or panel==0: ax.set_ylabel(r'累计线退偏比 $\delta(D)$')
+        ax.set_xlabel('In-cloud integration\ndepth (m)')
+        if ground or panel==0: ax.set_ylabel(r'Cumulative LDR $\delta(D)$')
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=4 if ground else 5, steps=[1, 2, 5, 10]))
         fmt=SingleOriginZero(useMathText=True);fmt.set_scientific(False)
         ax.yaxis.set_major_formatter(fmt)
-        ax.text(.04,.95,f'({chr(97+panel)})',transform=ax.transAxes,fontweight='bold',va='top',zorder=10,
-                bbox=dict(facecolor='white',edgecolor='none',pad=.2))
+        ax.text(.04,.95,f'({chr(97+panel)})',transform=ax.transAxes,fontweight='bold',va='top',zorder=10)
         ax.grid(color='#e7e7e7',lw=.4);ax.set_axisbelow(True)
-    fig.text(.16 if ground else .13,.035 if ground else .065,'通道先平均，再积分取比；阴影为独立重复范围。',fontsize=8)
-    for suffix in ['png','pdf']:
+    fig.text(.16 if ground else .13,.025,
+             'Channel means integrated before taking ratios.\n'
+             'Shading: range across independent repeats; LDR: linear depolarization ratio.',fontsize=9)
+    for suffix in ['png','pdf','svg']:
         fig.savefig(folder/f'comparison.{suffix}',dpi=600,facecolor='white')
+    # Keep the explicitly named English image used by the homepage in sync.
+    (folder/'comparison_en.png').write_bytes((folder/'comparison.png').read_bytes())
     plt.close(fig)
     csv_write(folder/'comparison.csv',rows)
     csv_write(folder/'summary.csv',summaries)
     image_file = (folder/'comparison.png').resolve()
     print(f'[{case}] Saved PNG: {image_file}', flush=True)
     print(f'[{case}] Saved PDF: {(folder/"comparison.pdf").resolve()}', flush=True)
+    print(f'[{case}] Saved SVG: {(folder/"comparison.svg").resolve()}', flush=True)
     print(f'[{case}] Saved tables: comparison.csv, summary.csv', flush=True)
     print(json.dumps(dict(case=case,configurations=len(configs),source_model=str(model_file),
                          summary_rows=len(summaries)),ensure_ascii=False), flush=True)
@@ -164,7 +168,7 @@ def open_generated_image(image_file):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--case',choices=['ground','satellite','all'],default='all')
-    p.add_argument('--model-file',type=Path,help='CSV from run_model.m; use with a single --case.')
+    p.add_argument('--model-file',type=Path,help='Path to a saved MUSS result CSV; use with a single --case.')
     p.add_argument('--no-show',action='store_true',help='Save output files without opening the image viewer.')
     args=p.parse_args()
     if args.model_file and args.case=='all': p.error('--model-file requires --case ground or satellite')

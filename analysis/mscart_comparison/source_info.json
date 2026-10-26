@@ -56,7 +56,7 @@
     "original_mscart_stokes_preserved": true
   },
   "model_entry_test_photons_per_configuration": 4096,
-  "model_code_location": "Current projectRoot/lib; both run_model.m entries call the formal repaired model.",
+  "model_code_location": "MUSS source code is maintained in the project lib directory; this comparison package provides saved results and plotting only.",
   "current_model_project": "GitHub-repository/MultiScatterSim-dev",
   "current_model_photons_per_run": 4096,
   "current_model_repeats_per_configuration": 1,
@@ -114,7 +114,8 @@
       "ground/comparison.png",
       "ground/comparison.pdf",
       "ground/comparison.csv",
-      "ground/summary.csv"
+      "ground/summary.csv",
+      "ground/comparison.svg"
     ]
   },
   "compare_direct_run_fix": {
@@ -125,7 +126,7 @@
     "single_model_results_csv": true
   },
   "single_result_csv_per_case": true,
-  "result_overwrite_policy": "run_model overwrites model_results.csv; compare.py reads the same file.",
+  "result_overwrite_policy": "compare.py reads saved result data and writes only comparison plots and tables.",
   "single_csv_output_verification": {
     "passed": true,
     "result_sha256": {
@@ -137,32 +138,47 @@
     "values_changed": 0
   },
   "file_sha256": {
-    "compare.py": "fcffbe9041b68b447c63ed17bd6a9d0840a2e0c83f60dbac19806506d3bd39a0",
+    "compare.py": "d20ace0771fac39f2662a6fdc818bad1734f9ff62f2db7b9752f664dc99cc2c6",
     "ground/comparison.csv": "5966c2486a864884b255deb35caaf022d3ee76f0d828bfa43c28f0f668d0015e",
-    "ground/comparison.pdf": "ff196bca4b60cbcef4575ef28df86caa7b5fd16fe4f5a54a8eb3794e1eea5413",
-    "ground/comparison.png": "4a64537fe8ed3fbe41ca8299f3c94c82cee8292a8c9eada98231e38436d69773",
-    "ground/high_input.nc": "afb6b67abc3f5353fcfd41319487a7ef1d9c0205aa86cd6d8f589ed9ede2450c",
-    "ground/high_input.nml": "13b2657a1b5fad15398215e52578b730dde89777bde622e166114de42387ff50",
+    "ground/comparison.pdf": "af8010181585a8ff5ab721fce2b70a0b449de4c2cc2ae0eb74df9e8f2ab24678",
+    "ground/comparison.png": "314661f8a70880899ede2bb3d7892d4a267d170316d855a739034f5ada369cc1",
+    "ground/comparison.svg": "ccc2269aab84e9356d8601c6d8f3c92eb48f60c3240aa56fb7ad57c0537eb9bf",
+    "ground/comparison_en.png": "314661f8a70880899ede2bb3d7892d4a267d170316d855a739034f5ada369cc1",
     "ground/high_result.nc": "b1404186bb9a151c46543c36e4d010278ef567a5cf3a73672a5e7a18a3a15b4f",
-    "ground/low_input.nc": "ffb37077746cf16734abf8ad8de63b1d523feb423a69710718c81cb3dc9b3b9e",
-    "ground/low_input.nml": "13b2657a1b5fad15398215e52578b730dde89777bde622e166114de42387ff50",
     "ground/low_result.nc": "8c47324bb302bb360817501f51fd556884fd8fc895a613a6fb8237c5326075f3",
     "ground/model_results.csv": "d986e6c57a981db51c854269a3f5dd1f31aa0a00b0a0b98366df8e43734fa2b0",
-    "ground/optics.mat": "89d509d5729204b28394608b6a528ebef124992067b9e683999d67471a5b1cdd",
-    "ground/run_model.m": "8359e8ed33db953ca1c1b5845b1465b2b3fd9adf29fe7e42d16b072f009e376f",
     "ground/summary.csv": "c1e109852c5429990be414df0f14e817c6ea66f20ea1b4fbbff9e73512829a7c",
-    "README.md": "4b48a5e15ea92c501764624b0236d3cbc2bc3f29210a50dde5993134416691b9",
+    "README.md": "bb29e8a0f664d90175d940a81abb3216708902ff5bdc9dd7f80d9f0949f5757b",
     "requirements.txt": "f098fc889b00d96f463cc9f9952b016114501f283334de9d041db5f61cd8374b",
-    "run_mscart.sh": "65390821f6f9f1c3a528c064d4cf58ac109fc31744a5cb5dcfb13b8566d82a76",
     "satellite/comparison.csv": "16c0ab740fb572cb0c5cde91fc6db7836298f7649d34bfa7a7f0a1c99d27fa8f",
-    "satellite/comparison.pdf": "f78aae3a1d8483c4de8f6b4d94c69dbc0660deba76aaf017371eb4e554843a97",
-    "satellite/comparison.png": "140a4b9601f6213aa0b303d903b5d2350ee4b46a6be7a36925a9c984a2774e7c",
-    "satellite/input.nc": "9c00d988e6d5011b1713c1d6d1e9478dde0bca4f144c5740785ae1ff81ad5bae",
-    "satellite/input.nml": "6dcd7db6bfcb3e92d57d1b34f051724c9bada5232b4c6e7541fcbe0484b18fc8",
+    "satellite/comparison.pdf": "464c778283cb7fb9e7f2defa27091912b2bfa5b77b30ef04d349e15d108921d4",
+    "satellite/comparison.png": "eded6d5241ba6fd27280cce9fc8782167aa17f98844bad025ce0d510f1c00ed4",
+    "satellite/comparison.svg": "ba7c113345d5b503d6ee1f004de034ebaa2cf8eee8b8e8041b8878b183fa13ec",
+    "satellite/comparison_en.png": "eded6d5241ba6fd27280cce9fc8782167aa17f98844bad025ce0d510f1c00ed4",
     "satellite/model_results.csv": "e8cf04e2bee326ffc4ed179c3e550ed8a22dda67ceb65ed3ca022b26a6593ba6",
-    "satellite/optics.mat": "2c185a00a6c660ddb16ade189dae637d53f7d44b8a1db71f40c9268da73246ee",
     "satellite/result.nc": "a4928a3ff3cc6c036bdcb2aa2b90f3c450fd14580be822f354818feec187346e",
-    "satellite/run_model.m": "d94f2a194cbbc90d5288bcfd9f7c4fee8c9a14b4da129dc6757e89f82dd9da41",
     "satellite/summary.csv": "da65ad2ed102bacadab38b22b28d87852ba78ecbe203129ebe4954fe299cfc7a"
+  },
+  "package_contents": "Saved MUSS and MSCART result data, comparison plots and tables, plotting script, dependencies, and documentation.",
+  "english_figure_redraw": {
+    "date": "2026-10-26",
+    "language": "en",
+    "generator": "compare.py",
+    "formats": [
+      "png",
+      "pdf",
+      "svg"
+    ],
+    "png_dpi": 600,
+    "saved_data_files_byte_identical": 9,
+    "curve_and_uncertainty_values_unchanged": true,
+    "text_clipping_and_collision_checks_passed": true,
+    "visual_inspection_passed": true,
+    "figure_width_mm": 140,
+    "minimum_pdf_font_size_pt": 9,
+    "homepage_images": [
+      "ground/comparison_en.png",
+      "satellite/comparison_en.png"
+    ]
   }
 }
