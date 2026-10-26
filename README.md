@@ -106,7 +106,7 @@ The project includes ground-based and spaceborne cases comparing MUSS simulation
 This case uses a 355 nm wavelength and 5 m range bins to compare cumulative linear depolarization ratios under low and high extinction conditions, with full-angle fields of view of 0.5 and 2.0 mrad. The figure shows integration depths within the cloud up to 150 m.
 
 <p align="center">
-  <img src="analysis/mscart_comparison/ground/comparison.png" alt="MUSS and MSCART comparison for the ground-based lidar case" width="800">
+  <img src="analysis/mscart_comparison/ground/comparison_en.png" alt="English MUSS and MSCART comparison for the ground-based lidar case" width="800">
 </p>
 
 ### Spaceborne Case
@@ -114,7 +114,7 @@ This case uses a 355 nm wavelength and 5 m range bins to compare cumulative line
 This case uses a 532 nm wavelength and 3 m range bins to compare cumulative linear depolarization ratios at full-angle fields of view of 0.001, 0.13, and 13 mrad. The figure shows integration depths within the cloud up to 300 m.
 
 <p align="center">
-  <img src="analysis/mscart_comparison/satellite/comparison.png" alt="MUSS and MSCART comparison for the spaceborne lidar case" width="1000">
+  <img src="analysis/mscart_comparison/satellite/comparison_en.png" alt="English MUSS and MSCART comparison for the spaceborne lidar case" width="1000">
 </p>
 
 In both figures, blue solid lines show MUSS results, while black dashed lines with circular markers show MSCART reference data. Each polarization channel is averaged across independent repeats before accumulation and ratio calculation. Shaded bands show the range across independent repeats.
