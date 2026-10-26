@@ -1,152 +1,75 @@
 # MUltiple Scattering Simulator (MUSS)
 
-MUSS is a MATLAB-based simulator for multiple scattering of polarized lidar beams in water clouds. It combines Mie scattering theory, cloud droplet size distributions, and a semi-analytical Monte Carlo method to simulate laser propagation, scattering, and polarization evolution within clouds. Return Stokes signals are accumulated by range bin to calculate return intensity and the linear depolarization ratio.
+MUSS 是基于 MATLAB 的水云偏振激光雷达多次散射模拟程序，结合 Mie 散射与半解析蒙特卡洛方法，计算回波 Stokes 信号、强度和线偏振退偏比。
 
-The project provides CPU and GPU implementations, along with comparison data for ground-based and spaceborne lidar cases using reference results generated with the third-party MSCART model.
+模型支持分层云配置，以及消光系数或云滴数浓度两种参数驱动方式，提供共用光学预处理的 CPU 和 GPU 实现。
 
-## Features
+## 快速开始
 
-- **Polarized multiple scattering:** Tracks photon propagation, scattering, absorption, and polarization evolution in water clouds, using semi-analytical estimates to accumulate the received signal.
-- **Layered cloud configurations:** Supports layer-specific effective radii, modified gamma distribution shape parameters, and extinction coefficients or cloud droplet number concentrations.
-- **CPU and GPU computation:** Both implementations share optical preprocessing, Mie scattering data, and Mueller scattering matrix definitions.
-- **Return signals and diagnostics:** Outputs return Stokes signals and diagnostics such as layer-resolved signals and scattering-order contributions.
-- **Reference comparisons:** Includes saved MUSS and MSCART results and a Python plotting script for ground-based and spaceborne cases.
+CPU 计算需要 MATLAB；GPU 计算还需要 Parallel Computing Toolbox 和受 MATLAB 支持的 GPU。
 
-## Requirements
-
-| Usage | Requirements |
-| --- | --- |
-| CPU simulation | MATLAB |
-| GPU simulation | MATLAB, Parallel Computing Toolbox, and a GPU supported by MATLAB |
-
-## Installation and Setup
-
-Clone the `master` branch:
+获取仓库的 `master` 分支：
 
 ```bash
 git clone --branch master https://github.com/ZPYin/MultiScatterSim.git
 cd MultiScatterSim
 ```
 
-In MATLAB, set the current folder to the project root and run:
+在 MATLAB 中将当前文件夹切换到项目根目录，初始化并运行 CPU 示例：
 
 ```matlab
 setupMSToolbox
-```
-
-This script adds `lib/`, `include/`, and `tests/`, including their subdirectories, to the MATLAB search path.
-
-## Quick Start
-
-Run the following commands in MATLAB with the project root as the current folder.
-
-### CPU Example
-
-```matlab
 run(fullfile('analysis', 'MCSim.m'))
 ```
 
-This example configures a 532 nm lidar and a layered water cloud, simulates 10,000 photons using the CPU model, and displays diagnostic plots. Edit the lidar configuration `lidarCfg`, cloud configuration `cloudCfg`, and photon count `nPhoton` in [MCSim.m](analysis/MCSim.m) to adjust the simulation.
-
-### GPU Example
+使用 GPU 时，运行：
 
 ```matlab
 run(fullfile('analysis', 'MCSimGPU.m'))
 ```
 
-This example uses the same lidar and cloud configurations as the CPU example and simulates 10,000 photons using the GPU model. It sets `fallbackToCPU=false`, so a working GPU computing environment is required.
+两个示例均使用 532 nm 波长、1 万个光子和仓库内置的[示例散射数据库](data/water_cloud_scattering_phase_function_example.mat)。可在示例脚本中修改 `lidarCfg`、`cloudCfg` 和 `nPhoton`。
 
-See the [GPU model documentation](lib/MC_GPU/README.md) for GPU parameters and implementation details.
+详细输入参数、输出格式和退偏比公式见[模型原理与参数说明](docs/MUSS基本原理介绍.md)。
 
-### Scattering Database
+## 与 MSCART 的结果对比
 
-Both examples use the [sample Mie scattering database](data/water_cloud_scattering_phase_function_example.mat) included in the repository. Its path is resolved automatically.
+提供地基和星载两个案例，将 MUSS 结果与采用第三方 MSCART 模型计算得到的参考数据进行比较。MSCART 的源代码和可执行程序不随本仓库提供。
 
-A compatible alternative database can be specified with the `scatMatrixFile` parameter. Use [water_droplet_scattering_gen.m](lib/scattering-phase-function/water_droplet_scattering_gen.m) to generate scattering databases.
+<details>
+<summary>查看地基和星载对比图（英文）</summary>
 
-## Model Inputs and Outputs
-
-The model takes two main configuration structures:
-
-| Input | Main parameters |
-| --- | --- |
-| `lidarCfg` | Wavelength, beam radius and divergence, receiver field of view, telescope radius, range-bin settings, and incident Stokes vector |
-| `cloudCfg` | Cloud base height, layer thickness and number of layers, effective radius, size distribution shape parameters, and extinction coefficient or cloud droplet number concentration |
-
-Cloud optical properties can be configured in two ways:
-
-- **Extinction coefficient mode:** Configures the cloud using `cloudCfg.clExt`, `cloudCfg.clReff`, and `cloudCfg.kappa`.
-- **Droplet number concentration mode:** Uses `cloudCfg.N_d`, `cloudCfg.clReff`, and `cloudCfg.kappa` to define the droplet size distribution, then combines it with Mie data to calculate optical properties at the specified wavelength. `N_d` is expressed in `m^-3`. This mode takes precedence when a nonempty `N_d` is supplied.
-
-After defining `lidarCfg` and `cloudCfg`, call the model to obtain its outputs:
-
-```matlab
-[SVReturn, diag] = MSMCSim(lidarCfg, cloudCfg, ...
-    'nPhoton', 1e4, 'visible', 'off');
-```
-
-The GPU entry point `MSMCSimGPU` uses the same main inputs and output structure. `SVReturn` is a `4 × nBins` array of return Stokes signals, with rows corresponding to `I`, `Q`, `U`, and `V`. `diag` contains diagnostic information.
-
-The parallel and perpendicular polarization channels and the linear depolarization ratio are defined as:
-
-```text
-I_parallel      = (I + Q) / 2
-I_perpendicular = (I - Q) / 2
-delta           = I_perpendicular / I_parallel
-```
-
-See the [MUSS model principles](docs/MUSS基本原理介绍.md) for detailed parameters, units, and computational procedures.
-
-## Comparison with MSCART Reference Data
-
-The project includes ground-based and spaceborne cases comparing MUSS simulation results with reference data generated using the third-party MSCART model. MSCART source code and executables are not distributed with this repository.
-
-### Ground-Based Case
-
-This case uses a 355 nm wavelength and 5 m range bins to compare cumulative linear depolarization ratios under low and high extinction conditions, with full-angle fields of view of 0.5 and 2.0 mrad. The figure shows integration depths within the cloud up to 150 m.
+**地基案例：** 355 nm 波长、5 m 距离门，低/高消光条件，全视场为 0.5 和 2.0 mrad；展示云内累计至 150 m 的线偏振退偏比。
 
 <p align="center">
-  <img src="analysis/mscart_comparison/ground/comparison_en.png" alt="English MUSS and MSCART comparison for the ground-based lidar case" width="800">
+  <img src="analysis/mscart_comparison/ground/comparison_en.png" alt="MUSS 与 MSCART 地基案例对比" width="800">
 </p>
 
-### Spaceborne Case
-
-This case uses a 532 nm wavelength and 3 m range bins to compare cumulative linear depolarization ratios at full-angle fields of view of 0.001, 0.13, and 13 mrad. The figure shows integration depths within the cloud up to 300 m.
+**星载案例：** 532 nm 波长、3 m 距离门，全视场为 0.001、0.13 和 13 mrad；展示云内累计至 300 m 的线偏振退偏比。
 
 <p align="center">
-  <img src="analysis/mscart_comparison/satellite/comparison_en.png" alt="English MUSS and MSCART comparison for the spaceborne lidar case" width="1000">
+  <img src="analysis/mscart_comparison/satellite/comparison_en.png" alt="MUSS 与 MSCART 星载案例对比" width="1000">
 </p>
 
-In both figures, blue solid lines show MUSS results, while black dashed lines with circular markers show MSCART reference data. Each polarization channel is averaged across independent repeats before accumulation and ratio calculation. Shaded bands show the range across independent repeats.
+蓝色实线为 MUSS，黑色虚线与圆点为 MSCART。两个偏振通道先分别对独立重复取平均，再累加取比；阴影表示独立重复的取值范围。
 
-The comparison directory contains saved results from both models, comparison figures and tables, and the `compare.py` plotting script. Plotting uses the saved data directly. See the [MSCART comparison data guide](analysis/mscart_comparison/README.md) for instructions.
+</details>
 
-## Documentation and Examples
+已有数据、统计定义和绘图步骤见[MSCART 对比说明](analysis/mscart_comparison/README.md)。
 
-| Document or example | Contents |
+## 文档与示例
+
+| 文档 | 内容 |
 | --- | --- |
-| [MUSS model principles](docs/MUSS基本原理介绍.md) | Semi-analytical Monte Carlo workflow, cloud optical properties, inputs and outputs, and depolarization ratio calculations |
-| [GPU model documentation](lib/MC_GPU/README.md) | GPU implementation, correspondence between CPU and GPU physical processes, and computation modes |
-| [Shared optical preprocessing](lib/MC_Optics/README.md) | Cloud optical property calculations, reuse of preprocessed data, and caching |
-| [MSCART comparison data guide](analysis/mscart_comparison/README.md) | Ground-based and spaceborne reference data, statistical definitions, and plotting instructions |
-| [Single-layer cloud depolarization example](analysis/depolarization_ration_cmp.m) | Variation of the linear depolarization ratio with cloud penetration depth at different extinction coefficients |
+| [模型原理与参数说明](docs/MUSS基本原理介绍.md) | 物理流程、输入输出、调用示例及模块索引 |
+| [GPU 模型说明](lib/MC_GPU/README.md) | GPU 依赖、计算结构和状态管理方式 |
+| [光学预处理说明](lib/MC_Optics/README.md) | 散射数据库、光学参数预计算与缓存 |
+| [MSCART 对比说明](analysis/mscart_comparison/README.md) | 参考数据与对比图绘制 |
+| [单层云退偏比示例](analysis/depolarization_ration_cmp.m) | 不同消光系数下退偏比随云内深度的变化 |
 
-## Main Modules
+## 开发团队
 
-| Module | Purpose |
-| --- | --- |
-| `lib/MC/MSMCSim.m` | Main CPU semi-analytical polarized Monte Carlo model |
-| `lib/MC_GPU/MSMCSimGPU.m` | Public entry point for the GPU model |
-| `lib/MC_Optics/prepareMSMCOptics.m` | Cloud optical preprocessing shared by CPU and GPU implementations |
-| `lib/MC_Optics/prepareMSMCOpticsCached.m` | Reuse and caching of optical preprocessing results |
-| `lib/scattering-phase-function/cloudScatteringMatrix.m` | Mueller scattering matrices and optical coefficients averaged over the cloud droplet size distribution |
-| `lib/scattering-phase-function/water_droplet_scattering_gen.m` | Generation of water droplet Mie scattering databases |
-| `lib/cloud-microphysics/smmgDist.m` | Modified gamma cloud droplet size distribution |
-| `lib/cloud-optics/refIdxWater.m` | Complex refractive index of water |
-
-## Developer Team
-
-| Name | Affiliation | Email |
+| 姓名 | 单位 | 邮箱 |
 | --- | --- | --- |
 | Zhenping Yin | Wuhan University | zp.yin@whu.edu.cn |
 | Chengwei Luo | Hubei University | cw.luo@stu.hubu.edu.cn |

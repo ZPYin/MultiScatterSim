@@ -1,85 +1,87 @@
-﻿# MUSS 多次散射模型基本原理介绍
+# Principles of the MUSS Multiple Scattering Model
 
-本文档用于说明 MultiScatterSim 中基于蒙特卡洛方法的偏振激光雷达多次散射模型。重点介绍主程序 `MSMCSim.m` 的计算流程、云层光学参数的构造方式，以及新增的 `N_d + R_eff` 云微物理参数驱动模式。
+This document describes the Monte Carlo model for multiple scattering of polarized lidar beams in MultiScatterSim. It covers the workflow of `MSMCSim.m`, the construction of cloud optical properties, and the cloud microphysical parameterization based on `N_d + R_eff`.
 
-## 蒙特卡洛多次散射基本原理
+## Monte Carlo Multiple Scattering
 
-蒙特卡洛（Monte Carlo, MC）多次散射方法是一种基于光子随机游走的统计模拟方法。其核心思想是将入射激光看作大量相互独立的光子包，逐个追踪光子在云层介质中的传播过程，包括：
+Monte Carlo (MC) multiple scattering is a statistical simulation method based on photon random walks. The incident laser beam is represented by many independent photon packets, whose propagation through the cloud is tracked through the following processes:
 
-- 光子发射与初始偏振态设置；
-- 云层中的自由程采样；
-- 散射事件位置和散射角采样；
-- Mueller 矩阵更新 Stokes 向量；
-- 光子吸收、逃逸或被望远镜视场接收；
-- 按距离门累计回波 Stokes 信号。
+- Photon launch and initialization of the polarization state;
+- Free-path sampling within the cloud;
+- Sampling of scattering locations and angles;
+- Stokes vector updates using Mueller matrices;
+- Photon absorption, escape, and evaluation of receiver contributions within the telescope field of view;
+- Accumulation of return Stokes signals by range bin.
 
-最终通过统计大量光子的返回信号，可以得到激光雷达回波强度、Stokes 分量以及线偏振退偏比等观测量。
+Accumulating the contributions of many photon packets yields observables such as lidar return intensity, Stokes components, and the linear depolarization ratio.
 
-本项目中的 `MSMCSim.m` 采用半解析蒙特卡洛思想。在每次散射事件处，除继续随机追踪光子外，还额外计算光子向望远镜方向散射并进入接收视场的概率，从而提高后向回波信号的统计效率。
+`MSMCSim.m` uses a semi-analytical Monte Carlo approach. At each scattering event, it estimates the contribution from scattering toward the telescope within the receiver field of view, while continuing the random photon trajectory. This improves the statistical efficiency of the backscatter estimate.
 
-## 主程序总体流程
+## Overall Workflow
 
-`MSMCSim.m` 的总体流程可以概括为：
+The workflow of `MSMCSim.m` is summarized below:
 
 ```mermaid
 flowchart TD
-    A[输入 lidarCfg 和 cloudCfg] --> B[解析可选参数]
-    B --> C[调用 cloudScatteringMatrix 计算云层散射特性]
-    C --> D[设置云层边界和诊断量]
-    D --> E{光子循环}
-    E --> F[光子初始化]
-    F --> G[自由程采样 freeRunning]
-    G --> H{是否仍在云层中}
-    H -->|否| Z[光子结束]
-    H -->|是| I{是否被吸收}
-    I -->|是| Z
-    I -->|否| J[轮盘赌判断]
-    J --> K{是否进入接收视场 FOV}
-    K -->|是| L[半解析计算进入望远镜概率]
-    L --> M[Mueller 矩阵更新返回 Stokes 信号]
-    M --> N[按距离门累计 SVReturn]
-    K -->|否| O[随机散射事件]
+    A[Input lidarCfg and cloudCfg] --> B[Parse optional arguments]
+    B --> C[Calculate cloud optics with cloudScatteringMatrix]
+    C --> D[Set cloud boundaries and diagnostics]
+    D --> E{Photon loop}
+    E --> F[Initialize photon]
+    F --> G[Sample free path with freeRunning]
+    G --> H{Still inside the cloud?}
+    H -->|No| Z[Terminate photon]
+    H -->|Yes| I{Absorbed?}
+    I -->|Yes| Z
+    I -->|No| J[Russian roulette check]
+    J --> K{Within receiver FOV?}
+    K -->|Yes| L[Estimate receiver probability]
+    L --> M[Apply Mueller matrix to return Stokes vector]
+    M --> N[Accumulate SVReturn by range bin]
+    K -->|No| O[Random scattering event]
     N --> O
-    O --> P[散射角采样]
-    P --> Q[更新 Stokes 向量和传播方向]
+    O --> P[Sample scattering angle]
+    P --> Q[Update Stokes vector and propagation direction]
     Q --> G
-    Z --> R{所有光子是否完成}
-    R -->|否| E
-    R -->|是| S[输出 SVReturn 和 diag]
+    Z --> R{All photons completed?}
+    R -->|No| E
+    R -->|Yes| S[Return SVReturn and diag]
 ```
 
-其中，`SVReturn` 是最终的回波 Stokes 信号，`diag` 保存分层回波、散射次数分布等诊断信息。
+`SVReturn` contains the return Stokes signals, and `diag` contains diagnostics such as layer-resolved returns and scattering-count distributions.
 
-## 1.云层光学参数计算
+## 1. Cloud Optical Properties
 
-云层散射特性的计算由 `cloudScatteringMatrix.m` 完成。该函数读取预先计算好的水滴 Mie 散射数据库，并结合云滴粒径分布，得到每一层云的体平均散射矩阵和光学系数。
+`cloudScatteringMatrix.m` reads a precomputed water droplet Mie scattering database and combines it with the cloud droplet size distribution to obtain bulk scattering matrices and optical coefficients for each cloud layer.
 
-主要输出包括：
+The main outputs are:
 
-- `muExt`：体消光系数，单位为 `m^-1`；
-- `muSca`：体散射系数，单位为 `m^-1`；
-- `S11, S12, S33, S34`：体平均 Mueller 散射矩阵元素；
-- `theta`：散射角网格。
+- `muExt`: bulk extinction coefficient, in `m^-1`;
+- `muSca`: bulk scattering coefficient, in `m^-1`;
+- `S11, S12, S33, S34`: bulk Mueller scattering matrix elements;
+- `theta`: scattering-angle grid.
 
-对于一组云滴粒径分布 `n(r)`，不同波长下的体消光系数可表示为：
+For a cloud droplet size distribution `n(r)`, the bulk extinction coefficient at wavelength `lambda` is:
 
 $$
 \mu_{ext}(\lambda)=\int \pi r^2 Q_{ext}(\lambda,r)n(r)\,dr
 $$
 
-其中，`Q_ext(lambda,r)` 来自 Mie 散射数据库，`n(r)` 由云滴谱分布函数给出。
+Here, `Q_ext(lambda,r)` is obtained from the Mie scattering database, and `n(r)` is calculated from the droplet size distribution function.
 
-## 2. 两种云层参数驱动模式
+## 2. Cloud Parameterization Modes
 
-当前代码中云层光学参数可以通过两种方式构造。
+Cloud optical properties can be constructed using either of the following parameterizations.
 
-### 2.1 `clExt / sigma_e` 驱动
+### 2.1 Extinction-Based Mode: `clExt / sigma_e`
 
-以输入的消光系数 `clExt`，也就是传入 `cloudScatteringMatrix` 的 `sigma_e`，作为控制量。代码根据给定的 `sigma_e`、`R_eff` 和 `kappa` 反向确定云滴数浓度，使当前波长下云层消光系数满足输入值。
+The input extinction parameter `clExt`, passed to `cloudScatteringMatrix` as `sigma_e`, is used with `R_eff` and `kappa` to infer the droplet number concentration.
 
-这种模式适合单波长情形，例如只研究 532 nm 下消光系数、粒径和退偏比之间的关系。
+**Implementation detail:** `smmgDist.m` uses an extinction-based approximation to infer the number concentration. When the database provides `Qext` and `Qsca`, `cloudScatteringMatrix.m` subsequently computes `muExt` and `muSca` by Mie integration. The returned `muExt` therefore need not equal the input `clExt` exactly.
 
-典型输入为：
+This mode is useful for single-wavelength studies, such as examining the relationship between extinction, droplet size, and depolarization at 532 nm.
+
+Typical inputs are:
 
 ```matlab
 cloudCfg.clExt = 0.02;   % m^-1
@@ -87,13 +89,13 @@ cloudCfg.clReff = 8;     % um
 cloudCfg.kappa = 7;
 ```
 
-### 2.2 `N_d + R_eff` 驱动
+### 2.2 Number-Concentration Mode: `N_d + R_eff`
 
-以云微物理参数作为输入，即云滴数浓度 `N_d`、有效半径 `R_eff` 和谱形参数 `kappa`。在这种模式下，云滴谱 `n(r)` 首先由微物理参数确定，然后不同波长分别通过 Mie 积分计算对应的 `muExt`、`muSca` 和 Mueller 矩阵。
+This mode takes cloud microphysical parameters as inputs: droplet number concentration `N_d`, effective radius `R_eff`, and size distribution shape parameter `kappa`. These parameters first determine `n(r)`. Mie integration then gives the wavelength-dependent `muExt`, `muSca`, and Mueller matrices.
 
-这种模式更适合研究“同一片云在不同波长激光入射下的响应”。因为此时同一片云应具有相同的云滴数浓度和粒径分布，而不是让每个波长重新调节数浓度以满足同一个输入消光系数。
+This mode is suited to studying the response of the same cloud at different wavelengths. The droplet number concentration and size distribution remain fixed across wavelengths, while the optical properties vary according to Mie scattering.
 
-典型输入为：
+Typical inputs are:
 
 ```matlab
 cloudCfg.N_d = 100 * 1e6;  % 100 cm^-3 -> m^-3
@@ -101,37 +103,37 @@ cloudCfg.clReff = 6;       % um
 cloudCfg.kappa = 7;
 ```
 
-当 `cloudCfg` 中存在非空 `N_d` 字段时，`MSMCSim.m` 会优先采用 `N_d + R_eff` 模式；否则回退到旧的 `clExt / sigma_e` 模式。
+When `cloudCfg` contains a nonempty `N_d` field, `MSMCSim.m` uses the `N_d + R_eff` mode. Otherwise, it uses the `clExt / sigma_e` mode.
 
-## 3. 修正伽马云滴谱
+## 3. Modified Gamma Droplet Size Distribution
 
-项目中常用修正伽马分布描述云滴粒径谱。给定数浓度 `N_d`、有效半径 `R_eff` 和形状参数 `kappa` 后，可以构造粒径谱：
+The model uses a modified gamma distribution to describe cloud droplet sizes. Given `N_d`, `R_eff`, and `kappa`, the size distribution is:
 
 $$
 n(r)=\frac{N_d}{R_m\Gamma(\kappa)}\left(\frac{r}{R_m}\right)^{\kappa-1}\exp\left(-\frac{r}{R_m}\right)
 $$
 
-其中 `R_m` 与 `R_eff` 和 `kappa` 有关。`smmgDist.m` 负责生成该粒径谱。
+The scale parameter `R_m` depends on `R_eff` and `kappa`. The distribution is generated by `smmgDist.m`.
 
-在`clExt / sigma_e` 驱动模式中，`smmgDist.m` 由输入的 `sigma_e` 反推 `N_d`；在`N_d + R_eff` 驱动模式中，若用户显式输入 `N_d`，则直接使用该真实数浓度构造粒径谱。
+In the `clExt / sigma_e` mode, `smmgDist.m` infers `N_d` from the input `sigma_e`. In the `N_d + R_eff` mode, the explicitly supplied number concentration is used directly to construct the size distribution.
 
-## 4. MSMCSim.m 输入参数
+## 4. Input Parameters of MSMCSim.m
 
-### 4.1 激光雷达参数 `lidarCfg`
+### 4.1 Lidar Configuration: `lidarCfg`
 
-| 参数 | 含义 | 单位 |
-|---|---|---|
-| `lambda` | 入射激光波长 | nm |
-| `rBeam` | 发射光束半径 | mm |
-| `divBeam` | 发射光束发散角 | mrad |
-| `FOV` | 接收视场角 | mrad |
-| `rTel` | 望远镜半径 | mm |
-| `binWidth` | 距离门宽度 | ns |
-| `nBins` | 距离门数量 | - |
-| `distBeamTel` | 发射光轴与接收光轴间距 | mm |
-| `SBeam` | 入射 Stokes 向量 | - |
+| Parameter | Description | Unit |
+| --- | --- | --- |
+| `lambda` | Incident laser wavelength | nm |
+| `rBeam` | Transmitted beam radius | mm |
+| `divBeam` | Beam divergence | mrad |
+| `FOV` | Receiver field of view | mrad |
+| `rTel` | Telescope radius | mm |
+| `binWidth` | Time-bin width | ns |
+| `nBins` | Number of range bins | - |
+| `distBeamTel` | Separation between the transmitter and receiver optical axes | mm |
+| `SBeam` | Incident Stokes vector | - |
 
-示例：
+Example:
 
 ```matlab
 lidarCfg.lambda = 532;
@@ -145,19 +147,19 @@ lidarCfg.distBeamTel = 50;
 lidarCfg.SBeam = [1; 1; 0; 0];
 ```
 
-### 4.2 云层参数 `cloudCfg`
+### 4.2 Cloud Configuration: `cloudCfg`
 
-| 参数 | 含义 | 单位 |
-|---|---|---|
-| `clBase` | 云底高度 | m |
-| `clDh` | 单层云几何厚度 | m |
-| `nClLayers` | 云层数 | - |
-| `kappa` | 修正伽马分布形状参数 | - |
-| `clReff` | 有效粒子半径 | um |
-| `clExt` | 消光系数，旧模式使用 | m^-1 |
-| `N_d` | 云滴数浓度，新模式使用 | m^-3 |
+| Parameter | Description | Unit |
+| --- | --- | --- |
+| `clBase` | Cloud base height | m |
+| `clDh` | Geometrical thickness of each cloud layer | m |
+| `nClLayers` | Number of cloud layers | - |
+| `kappa` | Modified gamma distribution shape parameter | - |
+| `clReff` | Effective droplet radius | um |
+| `clExt` | Extinction parameter for the extinction-based mode | m^-1 |
+| `N_d` | Droplet number concentration for the concentration-based mode | m^-3 |
 
-`N_d + R_eff`模式示例：
+Example using the `clExt / sigma_e` mode:
 
 ```matlab
 cloudCfg.clBase = 1000;
@@ -168,7 +170,7 @@ cloudCfg.clReff = 6;
 cloudCfg.clExt = 0.02;
 ```
 
-`N_d + R_eff`模式示例：
+Example using the `N_d + R_eff` mode:
 
 ```matlab
 cloudCfg.clBase = 1000;
@@ -179,15 +181,15 @@ cloudCfg.clReff = 6;
 cloudCfg.N_d = 100 * 1e6;  % 100 cm^-3
 ```
 
-## 5. MSMCSim.m 调用方式
+## 5. Calling MSMCSim.m
 
-最基本调用方式为：
+Basic call:
 
 ```matlab
 SVReturn = MSMCSim(lidarCfg, cloudCfg);
 ```
 
-推荐在批量仿真时关闭图像显示：
+Disable plotting for batch simulations:
 
 ```matlab
 [SVReturn, diag] = MSMCSim(lidarCfg, cloudCfg, ...
@@ -195,7 +197,7 @@ SVReturn = MSMCSim(lidarCfg, cloudCfg);
     'visible', 'off');
 ```
 
-如果需要指定散射数据库：
+To specify a scattering database:
 
 ```matlab
 [SVReturn, diag] = MSMCSim(lidarCfg, cloudCfg, ...
@@ -203,7 +205,9 @@ SVReturn = MSMCSim(lidarCfg, cloudCfg);
     'visible', 'off');
 ```
 
-如果要比较同一片云对不同波长的响应，可以固定 `cloudCfg.N_d`、`cloudCfg.clReff` 和 `cloudCfg.kappa`，只改变 `lidarCfg.lambda`：
+To compare the response of the same cloud at different wavelengths, keep `cloudCfg.N_d`, `cloudCfg.clReff`, and `cloudCfg.kappa` fixed and vary `lidarCfg.lambda`:
+
+**Database requirement:** The four-wavelength example below requires a database covering all four wavelengths. The bundled sample covers 355, 532, and 1064 nm. The 1550 nm case requires a compatible database supplied through `scatMatrixFile`, as illustrated in the preceding call.
 
 ```matlab
 wavelengths = [355, 532, 1064, 1550];
@@ -212,6 +216,8 @@ cloudCfg.N_d = 100 * 1e6;
 cloudCfg.clReff = 6;
 cloudCfg.kappa = 7;
 
+SVReturn = cell(size(wavelengths));
+diag = cell(size(wavelengths));
 for i = 1:numel(wavelengths)
     lidarCfg.lambda = wavelengths(i);
     [SVReturn{i}, diag{i}] = MSMCSim(lidarCfg, cloudCfg, ...
@@ -220,20 +226,20 @@ for i = 1:numel(wavelengths)
 end
 ```
 
-此时四个波长对应的是同一组云滴微物理参数，差异来自 Mie 散射效率、相函数和偏振矩阵的波长依赖。
+The four wavelengths correspond to the same cloud microphysical parameters. Differences in the returns arise from the wavelength dependence of Mie scattering efficiencies, phase functions, and polarization matrices.
 
-## 6. 回波信号和退偏比计算
+## 6. Return Signals and Depolarization Ratio
 
-`MSMCSim.m` 输出的 `SVReturn` 为 `4 x nBins` 矩阵：
+`MSMCSim.m` returns `SVReturn` as a `4 x nBins` matrix:
 
-| 行号 | Stokes 分量 | 含义 |
-|---|---|---|
-| 1 | `I` | 总强度 |
-| 2 | `Q` | 水平与垂直线偏振分量之差 |
-| 3 | `U` | 45° 与 135° 线偏振分量之差 |
-| 4 | `V` | 右旋与左旋圆偏振分量之差 |
+| Row | Stokes component | Description |
+| --- | --- | --- |
+| 1 | `I` | Total intensity |
+| 2 | `Q` | Difference between horizontal and vertical linear polarization components |
+| 3 | `U` | Difference between the 45-degree and 135-degree linear polarization components |
+| 4 | `V` | Difference between right- and left-circular polarization components |
 
-常用线偏振退偏比可以由 `I` 和 `Q` 计算：
+The linear depolarization ratio can be calculated from `I` and `Q`:
 
 $$
 P_{\parallel}=\frac{I+Q}{2},\qquad P_{\perp}=\frac{I-Q}{2}
@@ -243,32 +249,42 @@ $$
 \delta_{lin}(z)=\frac{P_{\perp}(z)}{P_{\parallel}(z)}=\frac{I(z)-Q(z)}{I(z)+Q(z)}
 $$
 
+## 7. Diagnostic Output: `diag`
 
-## 7. 诊断输出 `diag`
+`diag` contains the following diagnostic quantities:
 
-`diag` 保存若干辅助诊断量：
+| Field | Description |
+| --- | --- |
+| `SVReturnLayer` | Return Stokes contributions from each cloud layer |
+| `layerI` | Total return intensity from each layer |
+| `nScasHistEdges` | Bin edges of the scattering-count histogram |
+| `nScasHist` | Counts in the scattering-count histogram |
+| `layerScatterCount` | Number of scattering events recorded in each layer |
+| `angleSampler` | Selected scattering-angle sampling method |
 
-| 字段 | 含义 |
-|---|---|
-| `SVReturnLayer` | 各云层贡献的 Stokes 回波 |
-| `layerI` | 每层回波强度总和 |
-| `nScasHistEdges` | 散射次数直方图边界 |
-| `nScasHist` | 散射次数直方图计数 |
-| `layerScatterCount` | 每层发生的散射事件数量 |
-| `angleSampler` | 当前使用的散射角采样方法 |
+These quantities help assess scattering orders, layer contributions, and Monte Carlo statistical stability.
 
-这些诊断量可用于判断多次散射阶数、分层贡献和 MC 统计稳定性。
+## 8. Usage Notes
 
-## 8. 使用建议
+1. The `clExt / sigma_e` mode can be used for single-wavelength validation or reproduction studies.
+2. Prefer the `N_d + R_eff` mode when studying the same cloud at multiple wavelengths.
+3. `N_d` is expressed in `m^-3`. Multiply values in `cm^-3` by `1e6` before supplying them to the model.
+4. Large optical depths can reduce the statistical quality of the returns. Increase `nPhoton` or narrow the parameter range under study as needed.
+5. For batch generation of two-dimensional lookup tables, set `'visible','off'` and save intermediate results.
 
-1. 单波长验证或复现实验时，可以使用 `clExt / sigma_e` 模式。
-2. 多波长同一云层响应研究时，应优先使用 `N_d + R_eff` 模式。
-3. `N_d` 的单位是 `m^-3`，如果文献或云物理中使用 `cm^-3`，需要乘以 `1e6`。
-4. 当光学厚度过大时，回波统计会变差，需要提高 `nPhoton` 或缩小参数范围。
-5. 批量计算二维查找表时建议设置 `'visible','off'`，并保存中间结果。
+`MSMCSim.m` combines lidar and cloud configurations with a Mie scattering database and Monte Carlo photon tracking to simulate polarized lidar returns from multiple scattering within clouds.
 
+The `N_d + R_eff` mode supports studies of wavelength-dependent return intensity and depolarization for the same cloud microphysical state, providing a forward model for subsequent multiwavelength polarized lidar retrieval studies.
 
+## Implementation Modules
 
-`MSMCSim.m` 的核心作用是：在给定激光雷达参数和云层参数后，利用 Mie 散射数据库和蒙特卡洛随机追踪方法，模拟偏振激光雷达在云层中的多次散射回波。
-
-新增的 `N_d + R_eff` 模式使模型能够从云滴微物理参数出发，研究同一片云在不同波长下的回波强度和退偏比差异，更适合后续开展多波长偏振激光雷达云参数反演研究。
+| Module | Purpose |
+| --- | --- |
+| [MSMCSim.m](../lib/MC/MSMCSim.m) | CPU semi-analytical polarized Monte Carlo model |
+| [MSMCSimGPU.m](../lib/MC_GPU/MSMCSimGPU.m) | Public GPU entry point |
+| [prepareMSMCOptics.m](../lib/MC_Optics/prepareMSMCOptics.m) | Optical preprocessing shared by the CPU and GPU backends |
+| [prepareMSMCOpticsCached.m](../lib/MC_Optics/prepareMSMCOpticsCached.m) | Reuse and caching of optical preprocessing results |
+| [cloudScatteringMatrix.m](../lib/scattering-phase-function/cloudScatteringMatrix.m) | Bulk Mueller matrices and optical coefficients |
+| [water_droplet_scattering_gen.m](../lib/scattering-phase-function/water_droplet_scattering_gen.m) | Water droplet Mie scattering database generation |
+| [smmgDist.m](../lib/cloud-microphysics/smmgDist.m) | Modified gamma droplet size distribution |
+| [refIdxWater.m](../lib/cloud-optics/refIdxWater.m) | Complex refractive index of water |
